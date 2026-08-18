@@ -1,0 +1,62 @@
+PORTFÓLIO ESTILO STARDEW VALLEY — Marcela Starling
+==================================================
+
+O QUE É
+-------
+Uma página web (um jogo pixelado) que serve de portfólio:
+o visitante monta um personagem e anda pelo "vale" com as setas
+do teclado (ou WASD). Ao chegar perto das placas, aparecem caixas
+de diálogo com suas informações de carreira.
+
+Placas: Sobre mim · Experiência · Liderança · Tecnologias ·
+Formação · Contato.
+
+ARQUIVOS
+--------
+- index.html ............ a página completa (abra com 2 cliques
+                          ou publique em qualquer hospedagem).
+- portfolio-artifact.html . mesma página sem as tags externas,
+                          usada para publicar como link no Claude.
+
+COMO ABRIR NO SEU PC
+--------------------
+Dê dois cliques em index.html. Abre no navegador. Tudo funciona
+offline — não depende de internet nem de nada instalado.
+
+CONTROLES
+---------
+- Andar: setas do teclado ou W A S D
+- Ler placa: barra de Espaço, Enter ou E (ou o botão "LER")
+- Horta: chegue perto do canteiro "HORTA" e aperte Espaço para
+  plantar. A mudinha cresce em alguns segundos (semente > broto >
+  folhas > flor). Aperte Espaço de novo quando estiver florida
+  para colher. O placar mostra sua colheita.
+- Pesca: chegue na beira do lago e aperte Espaço. Um cursor corre
+  numa barra; aperte Espaço de novo quando ele estiver na FAIXA
+  VERDE para fisgar o peixe. O placar conta os peixes.
+  * Às vezes aparece um PEIXE RARO (faixa dourada, menor e mais
+    rápida) — vale um troféu no placar (⭐).
+  * A cada peixe fisgado, aparece uma CURIOSIDADE da minha carreira.
+- Celular: aparecem um direcional e um botão "LER" na tela.
+
+ESTILOS DE CABELO (11)
+----------------------
+Curto, Espetado, Longo, Cacheado, Repartido, Coque, Rabo de
+cavalo, Chanel, Moicano, Franjão e Ondulado.
+
+COMO PUBLICAR DE GRAÇA (link para compartilhar)
+-----------------------------------------------
+Opção 1 — GitHub Pages:
+  1. Crie um repositório no GitHub e envie o index.html.
+  2. Settings > Pages > Branch: main > /root > Save.
+  3. Em ~1 min o site fica no ar em
+     https://SEU-USUARIO.github.io/NOME-DO-REPO/
+
+Opção 2 — Netlify Drop:
+  Acesse app.netlify.com/drop e arraste a pasta. Pronto.
+
+PERSONALIZAR
+------------
+- Suas informações estão no index.html, na parte "const stations".
+- O telefone NÃO foi incluído (privacidade). Para adicionar, é só
+  colocar uma linha em "Contato".

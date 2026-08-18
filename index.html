@@ -1,0 +1,824 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Portfólio — Marcela Starling</title>
+<style>
+  :root{
+    --ink:#2b1d0e; --wood:#8a5a2b; --wood-d:#5e3a17; --paper:#fff4d6;
+    --paper-d:#e8d29a; --green:#7bb641; --accent:#3aa0ff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:#1b2a1a;overflow:hidden;
+    font-family:"Courier New",monospace;color:var(--ink);
+    -webkit-user-select:none;user-select:none;touch-action:none;}
+  #game{display:block;width:100vw;height:100vh;image-rendering:pixelated;background:#4a7a3a;}
+  .hidden{display:none !important}
+
+  /* ---------- creator overlay ---------- */
+  #creator{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(120% 120% at 50% 0%, #3a5f8a 0%, #223a5e 60%, #16233a 100%);
+    padding:16px;z-index:20;}
+  .panel{width:min(760px,96vw);max-height:96vh;overflow:auto;background:var(--paper);
+    border:6px solid var(--wood-d);border-radius:14px;
+    box-shadow:0 0 0 6px var(--wood) inset, 0 18px 40px rgba(0,0,0,.5);
+    padding:20px 22px;text-align:center;}
+  .panel h1{margin:.1em 0 .1em;font-size:26px;letter-spacing:1px;color:var(--wood-d);
+    text-shadow:1px 1px 0 var(--paper-d);}
+  .panel p.sub{margin:.2em 0 14px;font-size:14px;color:#6b4a22;}
+  .stage{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;align-items:flex-start}
+  #preview{image-rendering:pixelated;background:linear-gradient(#bfe08a,#8fc25a);
+    border:4px solid var(--wood-d);border-radius:10px;width:200px;height:220px;flex:0 0 auto}
+  .controls{flex:1 1 300px;min-width:280px;text-align:left}
+  .row{display:flex;align-items:center;gap:8px;margin:9px 0}
+  .row label{flex:0 0 96px;font-weight:bold;font-size:13px;color:var(--wood-d);text-transform:uppercase}
+  .opt{flex:1 1 auto;display:flex;align-items:center;gap:8px;justify-content:space-between;
+    background:var(--paper-d);border:2px solid var(--wood);border-radius:8px;padding:4px 6px}
+  .opt .val{flex:1 1 auto;text-align:center;font-size:13px;font-weight:bold;color:var(--wood-d)}
+  .swatches{display:flex;flex-wrap:wrap;gap:6px}
+  .sw{width:26px;height:26px;border-radius:6px;border:3px solid rgba(0,0,0,.25);cursor:pointer}
+  .sw.sel{border-color:#111;box-shadow:0 0 0 2px #fff inset}
+  .namebox{width:100%;font-family:inherit;font-size:15px;padding:8px 10px;border:2px solid var(--wood);
+    border-radius:8px;background:#fff;color:var(--ink)}
+  button.pix{font-family:inherit;font-weight:bold;cursor:pointer;border:none;border-radius:8px}
+  .arrow{width:30px;height:30px;font-size:16px;background:var(--wood);color:#fff;
+    border:2px solid var(--wood-d);border-radius:6px}
+  .arrow:active{transform:translateY(1px)}
+  #start{margin-top:16px;background:var(--green);color:#123;padding:14px 26px;font-size:18px;
+    letter-spacing:1px;box-shadow:0 5px 0 #4d7a1f;text-transform:uppercase}
+  #start:active{transform:translateY(3px);box-shadow:0 2px 0 #4d7a1f}
+
+  /* ---------- HUD ---------- */
+  #hud{position:fixed;left:10px;top:10px;z-index:8;pointer-events:none;
+    font-size:12px;color:#fff;text-shadow:1px 1px 0 #000;line-height:1.5}
+  #hud b{color:#ffe27a}
+  #progress{position:fixed;right:10px;top:10px;z-index:8;color:#fff;text-shadow:1px 1px 0 #000;
+    font-size:12px;text-align:right}
+  #hint{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:8;
+    background:rgba(0,0,0,.55);color:#fff;padding:6px 12px;border-radius:8px;font-size:13px;
+    border:2px solid rgba(255,255,255,.25);white-space:nowrap}
+
+  /* ---------- touch controls ---------- */
+  #touch{position:fixed;inset:auto 0 0 0;z-index:9;display:none;
+    justify-content:space-between;align-items:flex-end;padding:16px;pointer-events:none}
+  #dpad{display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(3,52px);gap:4px;pointer-events:auto}
+  #dpad .b{background:rgba(0,0,0,.45);border:2px solid rgba(255,255,255,.3);border-radius:10px;
+    color:#fff;font-size:20px;display:flex;align-items:center;justify-content:center}
+  #dpad .b:active{background:rgba(0,0,0,.7)}
+  #act{width:74px;height:74px;border-radius:50%;background:rgba(58,160,255,.75);
+    border:3px solid #fff;color:#fff;font-weight:bold;font-size:16px;pointer-events:auto}
+  @media (pointer:coarse){#touch{display:flex} #hint{bottom:112px}}
+
+  /* ---------- dialogue ---------- */
+  #dlg{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);width:min(680px,94vw);
+    z-index:12;background:var(--paper);border:5px solid var(--wood-d);border-radius:14px;
+    box-shadow:0 0 0 5px var(--wood) inset,0 12px 30px rgba(0,0,0,.5);padding:14px 16px;display:none}
+  #dlg .head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  #dlg .ic{width:34px;height:34px;border-radius:8px;flex:0 0 auto;display:flex;align-items:center;
+    justify-content:center;font-size:20px;background:var(--paper-d);border:2px solid var(--wood)}
+  #dlg .title{font-weight:bold;font-size:16px;color:var(--wood-d);letter-spacing:1px;text-transform:uppercase}
+  #dlg .body{font-size:15px;line-height:1.55;color:#3a2a12;min-height:66px;white-space:pre-wrap}
+  #dlg .next{text-align:right;font-size:12px;color:#8a6a34;margin-top:6px}
+  @media (max-width:480px){ .panel h1{font-size:21px} #dlg .body{font-size:14px} }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="hud" class="hidden"></div>
+<div id="progress" class="hidden"></div>
+<div id="hint" class="hidden"></div>
+
+<div id="touch">
+  <div id="dpad">
+    <span></span><div class="b" data-k="up">▲</div><span></span>
+    <div class="b" data-k="left">◀</div><span></span><div class="b" data-k="right">▶</div>
+    <span></span><div class="b" data-k="down">▼</div><span></span>
+  </div>
+  <button id="act" class="pix">LER</button>
+</div>
+
+<div id="dlg">
+  <div class="head"><div class="ic" id="dlgIc">🌱</div><div class="title" id="dlgTitle"></div></div>
+  <div class="body" id="dlgBody"></div>
+  <div class="next" id="dlgNext">▼ espaço / clique para continuar</div>
+</div>
+
+<div id="creator">
+  <div class="panel">
+    <h1>Meu Portfólio — Vale da Carreira</h1>
+    <p class="sub">Monte seu personagem e explore. Cada placa conta um pedaço da minha jornada.</p>
+    <div class="stage">
+      <canvas id="preview" width="200" height="220"></canvas>
+      <div class="controls">
+        <div class="row"><label>Nome</label>
+          <input id="nameIn" class="namebox" maxlength="24" value="Marcela Starling">
+        </div>
+        <div class="row"><label>Cabelo</label>
+          <div class="opt"><button class="arrow pix" data-cyc="style" data-d="-1">◀</button>
+            <span class="val" id="styleVal">—</span>
+            <button class="arrow pix" data-cyc="style" data-d="1">▶</button></div>
+        </div>
+        <div class="row"><label>Pele</label><div class="swatches" id="swSkin"></div></div>
+        <div class="row"><label>Cor cabelo</label><div class="swatches" id="swHair"></div></div>
+        <div class="row"><label>Camisa</label><div class="swatches" id="swShirt"></div></div>
+        <div class="row"><label>Calça</label><div class="swatches" id="swPants"></div></div>
+      </div>
+    </div>
+    <button id="start" class="pix">▶ Começar aventura</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+(function(){
+const cv = document.getElementById('game');
+const ctx = cv.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+
+const VW = 384, VH = 216;           // virtual resolution
+const TS = 16;                      // tile size
+const MAP_W = 46, MAP_H = 30;
+const WORLD_W = MAP_W*TS, WORLD_H = MAP_H*TS;
+
+let SCALE = 3, OFX = 0, OFY = 0;
+function resize(){
+  cv.width = innerWidth; cv.height = innerHeight;
+  ctx.imageSmoothingEnabled = false;
+  SCALE = Math.max(2, Math.floor(Math.min(innerWidth/VW, innerHeight/VH)));
+  OFX = Math.floor((innerWidth - VW*SCALE)/2);
+  OFY = Math.floor((innerHeight - VH*SCALE)/2);
+}
+addEventListener('resize', resize); resize();
+
+/* ---------------- palettes ---------------- */
+const SKINS = ["#ffdbac","#f1c27d","#e0ac69","#c68642","#8d5524","#5a3218"];
+const HAIRS = ["#3b2417","#7a4a1e","#c8781e","#e0b84c","#111318","#7a3b8f","#2f6bd6","#c0392b","#c8c8c8"];
+const SHIRTS= ["#3aa0ff","#7bb641","#c0392b","#8e44ad","#16a085","#e67e22","#2c3e50","#ec407a"];
+const PANTS = ["#2b4a8a","#3b2f2a","#3f6b3f","#4a3b6b","#222831","#6b4a2b","#7f8c8d"];
+
+const pal = { skin:0, hair:1, shirt:0, pants:0, style:0 };
+const STYLE_NAMES = ["Curto","Espetado","Longo","Cacheado","Repartido","Coque",
+  "Rabo de cavalo","Chanel","Moicano","Franjão","Ondulado"];
+
+function P(){
+  const skin = SKINS[pal.skin];
+  const hair = HAIRS[pal.hair];
+  const shirt= SHIRTS[pal.shirt];
+  const pants= PANTS[pal.pants];
+  return {
+    skin, skinD:shade(skin,-28), hair, hairD:shade(hair,-34),
+    shirt, shirtD:shade(shirt,-30), pants, pantsD:shade(pants,-30),
+    shoes:"#3a2a18", eye:"#22303a", white:"#fdfdfd"
+  };
+}
+function shade(hex,d){
+  const n=parseInt(hex.slice(1),16);
+  let r=(n>>16)+d, g=((n>>8)&255)+d, b=(n&255)+d;
+  r=Math.max(0,Math.min(255,r)); g=Math.max(0,Math.min(255,g)); b=Math.max(0,Math.min(255,b));
+  return "#"+(1<<24|r<<16|g<<8|b).toString(16).slice(1);
+}
+
+/* ---------------- character drawing ---------------- */
+// draws a 16x32 farmer at (ox,oy) in virtual px. dir: 0 down,1 up,2 right,3 left. frame:0..3
+function drawChar(g, ox, oy, dir, frame, pl, s){
+  const p = pl;
+  const R=(x,y,w,h,c)=>{ g.fillStyle=c; g.fillRect(Math.round(ox+x*s),Math.round(oy+y*s),Math.ceil(w*s),Math.ceil(h*s)); };
+  const pose = [0,1,0,2][frame&3];
+  const flip = dir===3;
+  if(flip){ g.save(); g.translate(Math.round(ox+16*s),0); g.scale(-1,1); ox=0; }
+  const D = flip?2:dir;   // draw right, mirror handles left
+
+  // leg animation
+  let lY=22,rY=22;
+  if(pose===1){ lY=21; rY=23; } else if(pose===2){ lY=23; rY=21; }
+
+  // shadow
+  g.fillStyle="rgba(0,0,0,.20)"; g.beginPath();
+  g.ellipse(Math.round(ox+8*s), Math.round(oy+30*s), 6*s, 2*s, 0,0,7); g.fill();
+
+  if(D===0 || D===1){ // front / back
+    // legs
+    R(4,lY,3,6,p.pants); R(4,lY+6,3,2,p.shoes);
+    R(9,rY,3,6,p.pants); R(9,rY+6,3,2,p.shoes);
+    // torso
+    R(4,15,8,7,p.shirt);
+    // arms
+    let alY=15,arY=15; if(pose===1){alY=16;arY=14;} else if(pose===2){alY=14;arY=16;}
+    R(2,alY,2,6,p.shirt); R(2,alY+6,2,1,p.skin);
+    R(12,arY,2,6,p.shirt); R(12,arY+6,2,1,p.skin);
+    // head
+    R(4,6,8,8,p.skin); R(3,9,1,2,p.skin); R(12,9,1,2,p.skin);
+    if(D===0){ // face
+      R(5,15,6,1,p.shirtD);
+      R(6,10,1,2,p.eye); R(9,10,1,2,p.eye);
+      R(7,12,2,1,p.skinD);
+    }
+    drawHair(R, dir, p);
+  } else { // side (right)
+    // back leg
+    R(5,rY,3,6,p.pantsD); R(5,rY+6,3,2,shade(p.shoes,-15));
+    // front leg
+    R(8,lY,3,6,p.pants); R(8,lY+6,3,2,p.shoes);
+    // torso
+    R(5,15,6,7,p.shirt);
+    // back arm
+    let aY=15; if(pose===1)aY=16; else if(pose===2)aY=14;
+    R(4,aY,2,6,p.shirtD); R(4,aY+6,2,1,p.skinD);
+    // head
+    R(5,6,7,8,p.skin);
+    R(11,10,1,2,p.eye); R(12,11,1,1,p.skinD);
+    // front arm
+    let fY=15; if(pose===1)fY=14; else if(pose===2)fY=16;
+    R(8,fY,2,6,p.shirt); R(8,fY+6,2,1,p.skin);
+    drawHair(R, 2, p);
+  }
+  if(flip) g.restore();
+}
+
+function drawHair(R, dir, p){
+  const st = pal.style;
+  const H=p.hair, HD=p.hairD;
+  if(dir===0||dir===1){ // front/back cap
+    R(4,4,8,3,H); R(3,6,1,4,H); R(12,6,1,4,H);
+    if(dir===1){ R(4,6,8,7,H); } else { R(4,6,8,1,H); }
+    if(st===1){ R(4,3,1,1,H);R(6,2,1,2,H);R(8,3,1,1,H);R(10,2,1,2,H); }
+    if(st===2){ R(3,6,1,10,H); R(12,6,1,10,H); if(dir===1)R(4,13,8,3,H); }
+    if(st===3){ R(3,3,10,4,H); R(2,5,1,4,H); R(13,5,1,4,H); }
+    if(st===4){ R(4,5,7,2,H); R(3,5,1,6,H); }
+    if(st===5){ R(6,2,4,3,HD); R(4,4,8,3,H); }
+    if(st===6){ R(6,3,4,2,H); if(dir===1){ R(6,7,4,9,H); R(6,15,4,1,HD); } else { R(12,7,2,6,H); R(3,6,1,2,H); } }
+    if(st===7){ R(3,6,1,8,H); R(12,6,1,8,H); R(4,5,8,2,H); if(dir===1)R(4,6,8,8,H); }
+    if(st===8){ R(7,1,2,5,H); R(6,2,4,2,H); R(6,4,4,2,HD); }
+    if(st===9){ R(4,6,8,2,H); R(3,6,1,12,H); R(12,6,1,12,H); if(dir===1)R(4,6,8,13,H); }
+    if(st===10){ R(3,6,1,11,H); R(12,6,1,11,H); R(3,10,1,1,HD); R(12,13,1,1,HD); if(dir===1){R(4,6,8,12,H);R(5,11,1,1,HD);R(9,14,1,1,HD);} }
+  } else { // side (right facing)
+    R(4,4,8,3,H); R(4,5,3,8,H); R(7,6,2,1,H);
+    if(st===1){ R(4,3,1,1,H);R(6,2,1,2,H);R(8,3,1,1,H); }
+    if(st===2){ R(4,5,3,12,H); }
+    if(st===3){ R(3,3,8,4,H); R(3,6,2,5,H); }
+    if(st===4){ R(4,5,8,2,H); }
+    if(st===5){ R(5,2,4,3,HD); R(4,4,8,3,H); }
+    if(st===6){ R(2,6,3,3,H); R(1,8,2,5,H); R(4,5,3,4,H); }
+    if(st===7){ R(4,5,4,9,H); }
+    if(st===8){ R(5,1,3,5,H); R(5,3,3,2,HD); }
+    if(st===9){ R(4,5,3,12,H); R(10,6,2,2,H); }
+    if(st===10){ R(4,5,3,11,H); R(4,10,1,1,HD); R(5,13,1,1,HD); }
+  }
+}
+
+/* ---------------- world / map ---------------- */
+// tile codes: 0 grass,1 path,2 water,3 flowerbed,4 sand
+const map = [];
+(function buildMap(){
+  for(let y=0;y<MAP_H;y++){ const row=[]; for(let x=0;x<MAP_W;x++) row.push(0); map.push(row); }
+  // main horizontal path
+  for(let x=2;x<MAP_W-2;x++){ map[15][x]=1; map[16][x]=1; }
+  // vertical branches up to stations
+  const branches=[6,14,22,30];
+  branches.forEach(bx=>{ for(let y=5;y<=16;y++){ map[y][bx]=1; } });
+  // lower branches to the bottom-row signs
+  [14,30].forEach(bx=>{ for(let y=16;y<=26;y++){ map[y][bx]=1; } });
+  // pond
+  for(let y=20;y<24;y++) for(let x=33;x<39;x++) map[y][x]=2;
+  // flower beds near start
+  for(let x=4;x<9;x++){ map[19][x]=3; map[20][x]=3; }
+})();
+
+// decorations: trees & props (non-blocking visuals + some collision)
+const trees=[];
+(function(){
+  const spots=[[3,9],[9,10],[17,8],[25,9],[42,9],[43,20],[4,25],[10,24],[16,25],[40,25],[44,6],[2,20]];
+  spots.forEach(([tx,ty])=> trees.push({x:tx*TS+8,y:ty*TS+8}));
+})();
+
+/* ---------------- farm plot ---------------- */
+const farm=[];
+(function(){
+  for(let ty=18;ty<=19;ty++) for(let tx=8;tx<=11;tx++){ map[ty][tx]=5; farm.push({tx,ty,stage:-1,plantedAt:0}); }
+})();
+const FLOWERS=["#ff6f91","#ffd166","#ff8c42","#c084fc","#5ad1e0","#ffffff"];
+const GROW=3.2;          // segundos por estágio
+let harvestCount=0;
+let toast={text:"",t:0};
+let finishShown=false;
+function showToast(t){ toast.text=t; toast.t=1.8; }
+
+/* ---------------- fishing ---------------- */
+let fishCount=0, rareCount=0;
+const FISH=["Lambari","Tilápia","Traíra","Robalo","Dourado","Bagre","Cascudo","Piranha!"];
+const FISH_RARE=["Pirarucu","Tucunaré gigante","Dourado lendário","Piraíba"];
+const CURIOS=[
+  "Lidero um squad no LEDS na reestruturação do sistema de bolsas da FAPES.",
+  "O sistema que ajudo a manter já tem mais de 500 usuários em produção.",
+  "Sou full stack: backend em C# / .NET e frontend em Vue.js.",
+  "Criei o Portal do Coordenador e do Bolsista: solicitação, cancelamento e remanejamento de bolsas.",
+  "Comecei como Analista de Dados e de Sistemas antes de virar desenvolvedora.",
+  "Curto Clean Architecture e Entity Framework Core no dia a dia.",
+  "Faço code reviews e mentoria de outros desenvolvedores do time.",
+  "Inglês avançado: leio e escrevo documentação técnica sem medo.",
+  "Já cuidei de KPIs de compliance (SOX) e de dashboards de acompanhamento.",
+  "Formada em Sistemas de Informação pelo IFES, com pós em Desenvolvimento Web."
+];
+const fishing={active:false,phase:'',pos:0,dir:1,speed:1,zoneStart:0.4,zoneW:0.2,result:'',resultT:0,caught:'',rare:false};
+
+/* ---------------- stations (portfolio data) ---------------- */
+let playerName = "Marcela Starling";
+const stations = [
+  { tx:6, ty:5, icon:"🌱", color:"#7bb641", title:"Sobre mim", key:"sobre",
+    lines:[
+      "Oi! Eu sou {NAME} 👋",
+      "Desenvolvedora Full Stack (.NET / C# e Vue), de Vitória–ES.",
+      "3 anos com .NET/C# e Vue, e cerca de 6 anos de experiência em tecnologia.",
+      "Comecei em Dados e Análise de Sistemas — o que me deu forte visão de negócio, requisitos e dados.",
+      "Bem-vindo(a) ao meu vale! Ande pelas trilhas e visite as placas pra conhecer minha jornada."
+    ]},
+  { tx:14, ty:5, icon:"👩‍💻", color:"#e67e22", title:"Experiência", key:"exp",
+    lines:[
+      "LEDS (2023–atual) — Desenvolvedora Full Stack & Líder de Squad.",
+      "Lidero o squad na reestruturação do sistema de bolsas da FAPES.",
+      "Criei o Portal do Coordenador e do Bolsista: solicitação, cancelamento, remanejamento e visualização de bolsas e projetos.",
+      "Sistema em produção com +500 usuários, com previsão de atender todos os bolsistas do ES. 🚀",
+      "Nexa Tecnologia (2022–2023) — Analista de Dados.",
+      "Oak Tecnologia (2020–2022) — Analista de Sistemas."
+    ]},
+  { tx:22, ty:5, icon:"🧭", color:"#c0392b", title:"Liderança", key:"lideranca",
+    lines:[
+      "Conduzo as decisões técnicas do squad e faço code reviews.",
+      "Mentoria de desenvolvedores e alinhamento entre equipe, stakeholders e áreas impactadas.",
+      "Já cuidei de KPIs de interfaces SOX (Sarbanes-Oxley / compliance) e de dashboards de acompanhamento.",
+      "Rotina em Scrum / Kanban e documentação técnica."
+    ]},
+  { tx:30, ty:5, icon:"🛠️", color:"#8e44ad", title:"Tecnologias", key:"tech",
+    lines:[
+      "Backend: C#, .NET / .NET Core, ASP.NET Core, Web API (REST).",
+      "Dados: Entity Framework Core, LINQ, SQL Server, Modelagem.",
+      "Frontend: Vue.js, JavaScript (ES6+), TypeScript, HTML5, CSS3.",
+      "DevOps: Docker, Git, GitHub, CI/CD.",
+      "Idiomas: Português (nativo) e Inglês (avançado)."
+    ]},
+  { tx:14, ty:25, icon:"🎓", color:"#3aa0ff", title:"Formação", key:"formacao",
+    lines:[
+      "Bacharelado em Sistemas de Informação — IFES (Instituto Federal do Espírito Santo).",
+      "Pós-graduação (Especialização) em Desenvolvimento Web.",
+      "Sempre estudando e trazendo o aprendizado pro dia a dia do time."
+    ]},
+  { tx:30, ty:25, icon:"📫", color:"#16a085", title:"Contato", key:"contato",
+    lines:[
+      "Quer trocar uma ideia ou ver mais projetos?",
+      "E-mail: marcelasfl46@gmail.com",
+      "LinkedIn: linkedin.com/in/marcela-starling-11a2bb226",
+      "GitHub: github.com/marcelasfl",
+      "Obrigada por visitar meu vale! 🌾"
+    ]}
+];
+stations.forEach(s=>{ s.x=s.tx*TS; s.y=s.ty*TS; s.visited=false; });
+
+/* ---------------- player ---------------- */
+const player = { x: 6*TS, y: 13*TS, w:10, h:14, dir:0, moving:false, animT:0, frame:0, speed:64 };
+const cam = { x:0, y:0 };
+
+/* ---------------- input ---------------- */
+const keys={};
+const KMAP={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',
+  w:'up',s:'down',a:'left',d:'right',W:'up',S:'down',A:'left',D:'right'};
+addEventListener('keydown',e=>{
+  const k=KMAP[e.key];
+  if(k){ keys[k]=true; e.preventDefault(); }
+  if(e.key===' '||e.key==='Enter'||e.key==='e'||e.key==='E'){ interact(); e.preventDefault(); }
+});
+addEventListener('keyup',e=>{ const k=KMAP[e.key]; if(k){ keys[k]=false; e.preventDefault(); } });
+
+document.querySelectorAll('#dpad .b').forEach(b=>{
+  const k=b.dataset.k;
+  const on=e=>{e.preventDefault();keys[k]=true;}; const off=e=>{e.preventDefault();keys[k]=false;};
+  b.addEventListener('touchstart',on,{passive:false}); b.addEventListener('touchend',off);
+  b.addEventListener('touchcancel',off); b.addEventListener('mousedown',on); b.addEventListener('mouseup',off);
+  b.addEventListener('mouseleave',off);
+});
+document.getElementById('act').addEventListener('click',interact);
+cv.addEventListener('click',()=>{ if(dlg.open) advance(); });
+
+/* ---------------- dialogue ---------------- */
+const dlgEl=document.getElementById('dlg');
+const dlg={open:false, station:null, idx:0, full:"", shown:0, tPrev:0};
+function openDialogue(st){
+  dlg.open=true; dlg.station=st; dlg.idx=0;
+  document.getElementById('dlgIc').textContent=st.icon;
+  document.getElementById('dlgTitle').textContent=st.title;
+  dlgEl.style.borderColor=shade(st.color,-40);
+  dlgEl.style.display='block';
+  setLine();
+  if(!st.visited){ st.visited=true; updateProgress(); }
+}
+function setLine(){
+  dlg.full = dlg.station.lines[dlg.idx].replace(/\{NAME\}/g, playerName);
+  dlg.shown=0;
+  document.getElementById('dlgBody').textContent="";
+}
+function advance(){
+  if(!dlg.open) return;
+  if(dlg.shown < dlg.full.length){ dlg.shown=dlg.full.length;
+    document.getElementById('dlgBody').textContent=dlg.full; return; }
+  dlg.idx++;
+  if(dlg.idx>=dlg.station.lines.length){ closeDialogue(); }
+  else setLine();
+}
+function closeDialogue(){ dlg.open=false; dlgEl.style.display='none'; }
+function interact(){
+  if(fishing.active){ fishingPress(); return; }
+  if(dlg.open){ advance(); return; }
+  const st=nearStation();
+  if(st){ openDialogue(st); return; }
+  const f=nearFarm();
+  if(f){ doFarm(f); return; }
+  if(nearWater()) startFishing();
+}
+function nearWater(){
+  const cx=player.x+player.w/2, cy=player.y+player.h;
+  const tx=Math.floor(cx/TS), ty=Math.floor(cy/TS);
+  for(const [ox,oy] of [[0,0],[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]]){
+    const row=map[ty+oy]; if(row && row[tx+ox]===2) return true;
+  }
+  return false;
+}
+function startFishing(){
+  fishing.active=true; fishing.phase='aim';
+  fishing.pos=0; fishing.dir=1;
+  fishing.rare = Math.random()<0.18;
+  fishing.speed = (fishing.rare?1.25:0.85) + Math.random()*0.5;
+  fishing.zoneW = fishing.rare?0.12:0.20;
+  fishing.zoneStart = 0.18+Math.random()*(0.64-fishing.zoneW);
+  fishing.result=''; fishing.resultT=0; fishing.caught='';
+}
+function fishingPress(){
+  if(fishing.phase!=='aim'){ endFishing(); return; }
+  const inZone = fishing.pos>=fishing.zoneStart && fishing.pos<=fishing.zoneStart+fishing.zoneW;
+  fishing.phase='result'; fishing.resultT=2.0;
+  if(inZone){
+    fishing.caught = fishing.rare ? FISH_RARE[Math.floor(Math.random()*FISH_RARE.length)]
+                                  : FISH[Math.floor(Math.random()*FISH.length)];
+    fishing.result='catch'; fishCount++; if(fishing.rare) rareCount++; updateProgress();
+  } else { fishing.result='miss'; }
+}
+function endFishing(){
+  const wasCatch=fishing.result==='catch', fish=fishing.caught, rare=fishing.rare;
+  fishing.active=false;
+  if(wasCatch) openCuriosidade(fish, rare);
+}
+function openCuriosidade(fish, rare){
+  const fact=CURIOS[Math.floor(Math.random()*CURIOS.length)];
+  openDialogue({ icon: rare?"🌟":"🎣", title: rare?"Peixe raro!":"Você fisgou!",
+    color: rare?"#f1c40f":"#16a085", visited:true,
+    lines:[ (rare?"RARÍSSIMO! ":"")+"Fisgou: "+fish+"!  🐟",
+            "Curiosidade: "+fact ] });
+}
+function nearStation(){
+  for(const s of stations){
+    const dx=(player.x+player.w/2)-(s.x+8), dy=(player.y+player.h)-(s.y+14);
+    if(Math.abs(dx)<16 && Math.abs(dy)<16) return s;
+  }
+  return null;
+}
+function nearFarm(){
+  const fx=player.x+player.w/2, fy=player.y+player.h;
+  let best=null,bd=1e9;
+  for(const f of farm){ const d=Math.hypot(fx-(f.tx*TS+8), fy-(f.ty*TS+12)); if(d<13 && d<bd){ bd=d; best=f; } }
+  return best;
+}
+function doFarm(f){
+  if(f.stage<0){ f.stage=0; f.plantedAt=tclock; showToast("Plantado! 🌱"); }
+  else if(f.stage>=3){ f.stage=-1; harvestCount++; showToast("Colheita! +1 🌻"); updateProgress(); }
+  else { showToast("Ainda crescendo…"); }
+}
+
+/* ---------------- collision ---------------- */
+function blocked(nx,ny){
+  // world bounds
+  if(nx<TS || ny<TS || nx+player.w>WORLD_W-TS || ny+player.h>WORLD_H-TS) return true;
+  // water tiles
+  const pts=[[nx,ny+player.h],[nx+player.w,ny+player.h],[nx,ny+player.h-2],[nx+player.w,ny+player.h-2]];
+  for(const [px,py] of pts){
+    const tx=Math.floor(px/TS), ty=Math.floor(py/TS);
+    if(map[ty] && map[ty][tx]===2) return true;
+  }
+  // trees trunks
+  for(const t of trees){
+    if(Math.abs((nx+player.w/2)-t.x)<7 && Math.abs((ny+player.h)-(t.y+8))<5) return true;
+  }
+  return false;
+}
+
+/* ---------------- update ---------------- */
+let last=0, started=false;
+function update(dt){
+  let vx=0,vy=0;
+  if(keys.up)vy-=1; if(keys.down)vy+=1; if(keys.left)vx-=1; if(keys.right)vx+=1;
+  const locked = dlg.open||fishing.active;
+  player.moving = (vx||vy)&&!locked;
+  if(locked){ vx=0; vy=0; player.moving=false; }
+  if(vx||vy){
+    if(vy<0)player.dir=1; else if(vy>0)player.dir=0;
+    if(vx<0)player.dir=3; else if(vx>0)player.dir=2;
+    const len=Math.hypot(vx,vy)||1; vx/=len; vy/=len;
+    const sp=player.speed*dt;
+    let nx=player.x+vx*sp;
+    if(!blocked(nx,player.y)) player.x=nx;
+    let ny=player.y+vy*sp;
+    if(!blocked(player.x,ny)) player.y=ny;
+  }
+  if(player.moving){ player.animT+=dt*8; player.frame=Math.floor(player.animT)%4; }
+  else { player.frame=0; player.animT=0; }
+
+  // camera
+  cam.x = Math.round(player.x+player.w/2 - VW/2);
+  cam.y = Math.round(player.y+player.h/2 - VH/2);
+  cam.x = Math.max(0, Math.min(WORLD_W-VW, cam.x));
+  cam.y = Math.max(0, Math.min(WORLD_H-VH, cam.y));
+
+  // typewriter
+  if(dlg.open && dlg.shown<dlg.full.length){
+    dlg.shown += dt*46;
+    document.getElementById('dlgBody').textContent = dlg.full.slice(0,Math.floor(dlg.shown));
+  }
+
+  // farm growth + toast timer
+  for(const f of farm){ if(f.stage>=0 && f.stage<3) f.stage=Math.min(3, Math.floor((tclock-f.plantedAt)/GROW)); }
+  if(toast.t>0) toast.t-=dt;
+
+  // fishing
+  if(fishing.active){
+    if(fishing.phase==='aim'){
+      fishing.pos += fishing.dir*fishing.speed*dt;
+      if(fishing.pos>1){ fishing.pos=1; fishing.dir=-1; }
+      if(fishing.pos<0){ fishing.pos=0; fishing.dir=1; }
+    } else if(fishing.phase==='result'){
+      fishing.resultT-=dt; if(fishing.resultT<=0) endFishing();
+    }
+  }
+
+  // hint
+  const hintEl=document.getElementById('hint');
+  const near=nearStation();
+  const nf=near?null:nearFarm();
+  if(dlg.open||fishing.active){ hintEl.classList.add('hidden'); }
+  else if(near){ hintEl.textContent="Aperte [Espaço] / LER: "+near.title; hintEl.classList.remove('hidden'); }
+  else if(nf){
+    const msg = nf.stage<0 ? "Aperte [Espaço] / LER para plantar 🌱"
+              : nf.stage>=3 ? "Aperte [Espaço] / LER para colher 🌻"
+              : "Crescendo… volte daqui a pouco 🌱";
+    hintEl.textContent=msg; hintEl.classList.remove('hidden'); }
+  else if(nearWater()){ hintEl.textContent="Aperte [Espaço] / LER para pescar 🎣"; hintEl.classList.remove('hidden'); }
+  else { hintEl.classList.add('hidden'); }
+}
+
+/* ---------------- render ---------------- */
+let tclock=0;
+function draw(){
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.fillStyle="#20301c"; ctx.fillRect(0,0,cv.width,cv.height);
+  // world transform
+  ctx.setTransform(SCALE,0,0,SCALE, OFX-cam.x*SCALE, OFY-cam.y*SCALE);
+
+  // tiles (only visible range)
+  const x0=Math.max(0,Math.floor(cam.x/TS)-1), x1=Math.min(MAP_W,Math.ceil((cam.x+VW)/TS)+1);
+  const y0=Math.max(0,Math.floor(cam.y/TS)-1), y1=Math.min(MAP_H,Math.ceil((cam.y+VH)/TS)+1);
+  for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){ drawTile(x,y,map[y][x]); }
+
+  // farm plants
+  for(const f of farm) drawFarmPlant(f);
+  { const lx=Math.round(9.5*TS), ly=18*TS-4; ctx.font="6px 'Courier New',monospace"; ctx.textAlign="center";
+    const t="HORTA", w=ctx.measureText(t).width+6;
+    ctx.fillStyle="rgba(0,0,0,.5)"; ctx.fillRect(Math.round(lx-w/2),ly-8,w,8);
+    ctx.fillStyle="#cdeb9a"; ctx.fillText(t,lx,ly-2); ctx.textAlign="left"; }
+
+  // stations
+  for(const s of stations) drawSign(s);
+
+  // depth-sorted: trees & player by baseline y
+  const ents=[];
+  for(const t of trees) ents.push({y:t.y+8, kind:'tree', o:t});
+  ents.push({y:player.y+player.h, kind:'player'});
+  ents.sort((a,b)=>a.y-b.y);
+  for(const e of ents){
+    if(e.kind==='tree') drawTree(e.o);
+    else drawChar(ctx, player.x-3, player.y-16, player.dir, player.frame, P(), 1);
+  }
+
+  if(toast.t>0) drawToast();
+
+  // UI overlay pinned to viewport (virtual coords)
+  ctx.setTransform(SCALE,0,0,SCALE, OFX, OFY);
+  drawVignette();
+  if(fishing.active) drawFishing();
+}
+
+function drawTile(x,y,t){
+  const px=x*TS, py=y*TS;
+  let base = ((x+y)&1)? "#6fae4a" : "#67a545";
+  if(t===1){ base = ((x+y)&1)? "#caa46a":"#c19a5e"; }        // path
+  else if(t===2){ base = "#3f8fd0"; }                         // water
+  else if(t===3){ base = ((x+y)&1)? "#6fae4a":"#67a545"; }    // flowerbed grass under
+  else if(t===5){ base = ((x+y)&1)? "#7a5230":"#6e4a2a"; }    // tilled soil
+  ctx.fillStyle=base; ctx.fillRect(px,py,TS,TS);
+  if(t===5){ ctx.fillStyle="rgba(0,0,0,.18)"; ctx.fillRect(px,py+4,TS,1); ctx.fillRect(px,py+11,TS,1);
+    ctx.fillStyle="rgba(255,255,255,.05)"; ctx.fillRect(px,py+5,TS,1); ctx.fillRect(px,py+12,TS,1); }
+  // grass texture dots
+  if(t===0||t===3){
+    ctx.fillStyle="rgba(255,255,255,.05)";
+    ctx.fillRect(px+3,py+5,1,1); ctx.fillRect(px+10,py+11,1,1);
+    ctx.fillStyle="rgba(0,0,0,.05)"; ctx.fillRect(px+7,py+8,1,1);
+  }
+  if(t===1){ ctx.fillStyle="rgba(0,0,0,.06)"; ctx.fillRect(px+2,py+2,1,1); ctx.fillRect(px+9,py+11,1,1); }
+  if(t===2){ // water shimmer
+    const s=Math.sin((tclock*2)+(x*0.7)+(y*0.9));
+    ctx.fillStyle="rgba(255,255,255,"+(0.10+0.06*Math.max(0,s))+")";
+    ctx.fillRect(px+2,py+6,6,1);
+  }
+  if(t===3){ // flowers
+    const cols=["#ff6f91","#ffd166","#fff","#c084fc"];
+    const c=cols[(x*3+y)%cols.length];
+    ctx.fillStyle=c; ctx.fillRect(px+5,py+5,2,2); ctx.fillRect(px+10,py+9,2,2);
+    ctx.fillStyle="#e8b"; ctx.fillRect(px+6,py+6,0.5,0.5);
+  }
+}
+
+function drawTree(t){
+  const x=t.x, y=t.y;
+  ctx.fillStyle="rgba(0,0,0,.18)"; ctx.beginPath(); ctx.ellipse(x,y+11,7,2.5,0,0,7); ctx.fill();
+  ctx.fillStyle="#6b4a2b"; ctx.fillRect(x-2,y+2,4,10);            // trunk
+  const sway=Math.sin(tclock*1.4 + x)*1.2;
+  ctx.fillStyle="#2f7d34";                                       // canopy
+  ctx.beginPath(); ctx.arc(x+sway,y-6,9,0,7); ctx.fill();
+  ctx.fillStyle="#3c9a41";
+  ctx.beginPath(); ctx.arc(x-4+sway,y-2,6,0,7); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+5+sway,y-2,6,0,7); ctx.fill();
+  ctx.fillStyle="rgba(255,255,255,.10)";
+  ctx.beginPath(); ctx.arc(x-2+sway,y-9,3,0,7); ctx.fill();
+}
+
+function drawFarmPlant(f){
+  if(f.stage<0) return;
+  const px=f.tx*TS, py=f.ty*TS, cx=px+8;
+  if(f.stage===0){ ctx.fillStyle="#4a3418"; ctx.fillRect(px+6,py+9,4,3);
+    ctx.fillStyle="#6fae3a"; ctx.fillRect(px+7,py+8,2,1); return; }
+  const sway=Math.sin(tclock*2+px)*0.7;
+  if(f.stage===1){ ctx.fillStyle="#5aa832"; ctx.fillRect(cx-1,py+8,2,5);
+    ctx.fillStyle="#6fc23f"; ctx.fillRect(cx-3,py+9,2,1); ctx.fillRect(cx+1,py+8,2,1); return; }
+  if(f.stage===2){ ctx.fillStyle="#3f7d2a"; ctx.fillRect(cx-1,py+6,2,7);
+    ctx.fillStyle="#5aa832"; ctx.fillRect(cx-4,py+7,3,2); ctx.fillRect(cx+1,py+6,3,2);
+    ctx.fillStyle="#6fc23f"; ctx.fillRect(cx-3,py+4,2,2); ctx.fillRect(cx+1,py+3,2,2); return; }
+  const col=FLOWERS[(f.tx*3+f.ty)%FLOWERS.length];
+  ctx.fillStyle="#3f7d2a"; ctx.fillRect(cx-1,py+7,2,7);
+  ctx.fillStyle="#5aa832"; ctx.fillRect(cx-4,py+8,3,2); ctx.fillRect(cx+1,py+7,3,2);
+  ctx.fillStyle=col; ctx.fillRect(Math.round(cx-2+sway),py+2,5,4); ctx.fillRect(Math.round(cx-3+sway),py+3,7,2);
+  ctx.fillStyle="#ffe08a"; ctx.fillRect(Math.round(cx+sway),py+3,1,2);
+  const a=0.35+0.4*Math.sin(tclock*4+px);
+  ctx.fillStyle="rgba(255,255,180,"+a+")"; ctx.fillRect(px+2,py+1,1,1); ctx.fillRect(px+13,py+3,1,1);
+}
+
+function drawToast(){
+  const tx=player.x+player.w/2, ty=player.y-16;
+  ctx.globalAlpha=Math.min(1, toast.t/0.5);
+  ctx.font="6px 'Courier New',monospace"; ctx.textAlign="center";
+  const w=ctx.measureText(toast.text).width+8;
+  const rx=Math.round(tx-w/2), ry=Math.round(ty-8);
+  ctx.fillStyle="rgba(20,12,4,.82)"; ctx.fillRect(rx,ry,w,10);
+  ctx.fillStyle="#fff4d6"; ctx.fillText(toast.text, Math.round(tx), ry+7);
+  ctx.textAlign="left"; ctx.globalAlpha=1;
+}
+
+function drawSign(s){
+  const x=s.x, y=s.y;
+  // glow if not visited
+  if(!s.visited){
+    const a=0.25+0.15*Math.sin(tclock*3);
+    ctx.fillStyle="rgba(255,235,120,"+a+")";
+    ctx.beginPath(); ctx.arc(x+8,y+6,11,0,7); ctx.fill();
+  }
+  ctx.fillStyle="rgba(0,0,0,.18)"; ctx.beginPath(); ctx.ellipse(x+8,y+15,7,2,0,0,7); ctx.fill();
+  ctx.fillStyle="#6b4a2b"; ctx.fillRect(x+7,y+8,2,7);           // post
+  ctx.fillStyle=shade(s.color,-20); ctx.fillRect(x+1,y-1,14,10);// board back
+  ctx.fillStyle=s.color; ctx.fillRect(x+2,y,12,8);              // board
+  ctx.fillStyle="rgba(255,255,255,.85)";
+  // small "book/pin" mark
+  ctx.fillRect(x+4,y+2,6,1); ctx.fillRect(x+4,y+4,6,1); ctx.fillRect(x+4,y+6,4,1);
+  // floating label
+  const label=s.title.toUpperCase();
+  ctx.font="6px 'Courier New',monospace"; ctx.textAlign="center";
+  const w=ctx.measureText(label).width+6;
+  ctx.fillStyle="rgba(0,0,0,.55)"; ctx.fillRect(x+8-w/2, y-11, w, 8);
+  ctx.fillStyle="#fff"; ctx.fillText(label, x+8, y-5);
+  ctx.textAlign="left";
+}
+
+function drawVignette(){
+  const g=ctx.createRadialGradient(VW/2,VH/2,VH*0.35, VW/2,VH/2,VH*0.85);
+  g.addColorStop(0,"rgba(0,0,0,0)"); g.addColorStop(1,"rgba(0,0,0,0.28)");
+  ctx.fillStyle=g; ctx.fillRect(0,0,VW,VH);
+}
+
+function drawFishing(){
+  const W=224, H=60, x=Math.round((VW-W)/2), y=VH-74;
+  ctx.fillStyle="#101826"; ctx.fillRect(x,y,W,H);
+  ctx.fillStyle="#1d6fe0"; ctx.fillRect(x,y,W,3);
+  ctx.strokeStyle="rgba(255,255,255,.18)"; ctx.lineWidth=1; ctx.strokeRect(x+0.5,y+0.5,W-1,H-1);
+  ctx.font="9px 'Courier New',monospace"; ctx.textAlign="center";
+  ctx.fillStyle=fishing.rare?"#ffd166":"#bfe0ff";
+  ctx.fillText(fishing.rare?"PESCARIA · PEIXE RARO!":"PESCARIA", x+W/2, y+14);
+  const bx=x+18, bw=W-36, by=y+24, bh=12;
+  ctx.fillStyle="#0e2033"; ctx.fillRect(bx,by,bw,bh);
+  ctx.fillStyle=fishing.rare?"#ffcf4d":"#7bd66a"; ctx.fillRect(Math.round(bx+fishing.zoneStart*bw), by, Math.round(fishing.zoneW*bw), bh);
+  ctx.fillStyle="rgba(255,255,255,.25)"; ctx.fillRect(bx,by,bw,1);
+  const cxp=Math.round(bx+fishing.pos*bw);
+  ctx.fillStyle="#ffd166"; ctx.fillRect(cxp-1, by-3, 3, bh+6);
+  ctx.font="7px 'Courier New',monospace";
+  let msg,col;
+  if(fishing.phase==='aim'){ msg="Aperte [Espaço] / LER na faixa "+(fishing.rare?"dourada":"verde")+"!"; col="#ffe9b0"; }
+  else if(fishing.result==='catch'){ msg="Fisgou: "+fishing.caught+"  (aperte p/ sair)"; col="#8ff0a0"; }
+  else { msg="O peixe escapou...  (aperte p/ sair)"; col="#ff9b9b"; }
+  ctx.fillStyle=col; ctx.fillText(msg, x+W/2, y+H-7);
+  ctx.textAlign="left";
+}
+
+/* ---------------- HUD ---------------- */
+function updateProgress(){
+  const done=stations.filter(s=>s.visited).length;
+  document.getElementById('progress').innerHTML=
+    "Placas: <b>"+done+"/"+stations.length+"</b>"+(done===stations.length?" ✅":"")+
+    "<br>Colheita: <b>"+harvestCount+"</b> 🌻"+
+    "<br>Peixes: <b>"+fishCount+"</b> 🐟"+(rareCount>0?"  ⭐<b>"+rareCount+"</b>":"");
+  if(done===stations.length && !finishShown){
+    finishShown=true;
+    setTimeout(()=>{ if(!dlg.open){
+      openDialogue({icon:"🌟",title:"Fim de tour",color:"#f1c40f",visited:true,
+        lines:["Você conheceu todo o vale! Valeu por explorar meu portfólio.",
+               "Pode continuar plantando e colhendo à vontade. 🌻"]});
+    }}, 400);
+  }
+}
+
+/* ---------------- loop ---------------- */
+function frame(ts){
+  if(!last)last=ts; let dt=(ts-last)/1000; last=ts; if(dt>0.05)dt=0.05;
+  tclock+=dt;
+  if(started){ update(dt); draw(); }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ---------------- creator UI ---------------- */
+const pv=document.getElementById('preview'), pctx=pv.getContext('2d');
+pctx.imageSmoothingEnabled=false;
+let pvFrame=0, pvT=0, pvLast=0;
+function previewLoop(ts){
+  if(!pvLast)pvLast=ts; const dt=(ts-pvLast)/1000; pvLast=ts;
+  pvT+=dt*6; pvFrame=Math.floor(pvT)%4;
+  pctx.clearRect(0,0,pv.width,pv.height);
+  pctx.setTransform(1,0,0,1,0,0);
+  // ground strip
+  pctx.fillStyle="rgba(0,0,0,.08)"; pctx.fillRect(0,pv.height-20,pv.width,20);
+  const s=6;
+  drawChar(pctx, Math.round(pv.width/2-8*s), pv.height-32*s-10, 0, pvFrame, P(), s);
+  if(document.getElementById('creator').classList.contains('hidden')) return;
+  requestAnimationFrame(previewLoop);
+}
+requestAnimationFrame(previewLoop);
+
+function buildSwatches(id, arr, key){
+  const box=document.getElementById(id); box.innerHTML="";
+  arr.forEach((c,i)=>{
+    const d=document.createElement('div'); d.className="sw"+(pal[key]===i?" sel":"");
+    d.style.background=c; d.title=c;
+    d.onclick=()=>{ pal[key]=i; [...box.children].forEach(ch=>ch.classList.remove('sel')); d.classList.add('sel'); };
+    box.appendChild(d);
+  });
+}
+buildSwatches('swSkin',SKINS,'skin');
+buildSwatches('swHair',HAIRS,'hair');
+buildSwatches('swShirt',SHIRTS,'shirt');
+buildSwatches('swPants',PANTS,'pants');
+
+function setStyleLabel(){ document.getElementById('styleVal').textContent=STYLE_NAMES[pal.style]; }
+setStyleLabel();
+document.querySelectorAll('[data-cyc]').forEach(b=>{
+  b.onclick=()=>{ const d=parseInt(b.dataset.d,10);
+    pal.style=(pal.style + d + STYLE_NAMES.length)%STYLE_NAMES.length; setStyleLabel(); };
+});
+
+document.getElementById('start').onclick=()=>{
+  const nm=document.getElementById('nameIn').value.trim();
+  if(nm) playerName=nm;
+  document.getElementById('creator').classList.add('hidden');
+  document.getElementById('hud').classList.remove('hidden');
+  document.getElementById('progress').classList.remove('hidden');
+  document.getElementById('hud').innerHTML=
+    "<b>"+playerName+"</b><br>Setas / WASD para andar<br>[Espaço] ler · plantar 🌱 · pescar 🎣";
+  updateProgress();
+  started=true; last=0;
+};
+})();
+</script>
+</body>
+</html>
