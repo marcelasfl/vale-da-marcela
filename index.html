@@ -139,7 +139,7 @@ ctx.imageSmoothingEnabled = false;
 
 const VW = 384, VH = 216;           // virtual resolution
 const TS = 16;                      // tile size
-const MAP_W = 46, MAP_H = 30;
+const MAP_W = 32, MAP_H = 22;
 const WORLD_W = MAP_W*TS, WORLD_H = MAP_H*TS;
 
 let SCALE = 3, OFX = 0, OFY = 0;
@@ -274,29 +274,28 @@ const map = [];
 (function buildMap(){
   for(let y=0;y<MAP_H;y++){ const row=[]; for(let x=0;x<MAP_W;x++) row.push(0); map.push(row); }
   // main horizontal path
-  for(let x=2;x<MAP_W-2;x++){ map[15][x]=1; map[16][x]=1; }
-  // vertical branches up to stations
-  const branches=[6,14,22,30];
-  branches.forEach(bx=>{ for(let y=5;y<=16;y++){ map[y][bx]=1; } });
+  for(let x=2;x<MAP_W-2;x++){ map[10][x]=1; map[11][x]=1; }
+  // vertical branches up to the top-row signs
+  [5,11,17,23].forEach(bx=>{ for(let y=4;y<=11;y++){ map[y][bx]=1; } });
   // lower branches to the bottom-row signs
-  [14,30].forEach(bx=>{ for(let y=16;y<=26;y++){ map[y][bx]=1; } });
-  // pond
-  for(let y=20;y<24;y++) for(let x=33;x<39;x++) map[y][x]=2;
-  // flower beds near start
-  for(let x=4;x<9;x++){ map[19][x]=3; map[20][x]=3; }
+  [11,23].forEach(bx=>{ for(let y=11;y<=18;y++){ map[y][bx]=1; } });
+  // pond (bottom-right)
+  for(let y=14;y<18;y++) for(let x=26;x<30;x++) map[y][x]=2;
+  // flower bed
+  for(let x=2;x<5;x++){ map[16][x]=3; map[17][x]=3; }
 })();
 
 // decorations: trees & props (non-blocking visuals + some collision)
 const trees=[];
 (function(){
-  const spots=[[3,9],[9,10],[17,8],[25,9],[42,9],[43,20],[4,25],[10,24],[16,25],[40,25],[44,6],[2,20]];
+  const spots=[[2,7],[8,7],[14,8],[20,8],[27,6],[3,13],[20,14],[16,20],[29,12]];
   spots.forEach(([tx,ty])=> trees.push({x:tx*TS+8,y:ty*TS+8}));
 })();
 
 /* ---------------- farm plot ---------------- */
 const farm=[];
 (function(){
-  for(let ty=18;ty<=19;ty++) for(let tx=8;tx<=11;tx++){ map[ty][tx]=5; farm.push({tx,ty,stage:-1,plantedAt:0}); }
+  for(let ty=14;ty<=15;ty++) for(let tx=6;tx<=9;tx++){ map[ty][tx]=5; farm.push({tx,ty,stage:-1,plantedAt:0}); }
 })();
 const FLOWERS=["#ff6f91","#ffd166","#ff8c42","#c084fc","#5ad1e0","#ffffff"];
 const GROW=3.2;          // segundos por estágio
@@ -326,7 +325,7 @@ const fishing={active:false,phase:'',pos:0,dir:1,speed:1,zoneStart:0.4,zoneW:0.2
 /* ---------------- stations (portfolio data) ---------------- */
 let playerName = "Marcela Starling";
 const stations = [
-  { tx:6, ty:5, icon:"🌱", color:"#7bb641", title:"Sobre mim", key:"sobre",
+  { tx:5, ty:4, icon:"🌱", color:"#7bb641", title:"Sobre mim", key:"sobre",
     lines:[
       "Oi! Eu sou {NAME} 👋",
       "Desenvolvedora Full Stack (.NET / C# e Vue), de Vitória–ES.",
@@ -334,7 +333,7 @@ const stations = [
       "Comecei em Dados e Análise de Sistemas — o que me deu forte visão de negócio, requisitos e dados.",
       "Bem-vindo(a) ao meu vale! Ande pelas trilhas e visite as placas pra conhecer minha jornada."
     ]},
-  { tx:14, ty:5, icon:"👩‍💻", color:"#e67e22", title:"Experiência", key:"exp",
+  { tx:11, ty:4, icon:"👩‍💻", color:"#e67e22", title:"Experiência", key:"exp",
     lines:[
       "LEDS (2023–atual) — Desenvolvedora Full Stack & Líder de Squad.",
       "Lidero o squad na reestruturação do sistema de bolsas da FAPES.",
@@ -343,14 +342,14 @@ const stations = [
       "Nexa Tecnologia (2022–2023) — Analista de Dados.",
       "Oak Tecnologia (2020–2022) — Analista de Sistemas."
     ]},
-  { tx:22, ty:5, icon:"🧭", color:"#c0392b", title:"Liderança", key:"lideranca",
+  { tx:17, ty:4, icon:"🧭", color:"#c0392b", title:"Liderança", key:"lideranca",
     lines:[
       "Conduzo as decisões técnicas do squad e faço code reviews.",
       "Mentoria de desenvolvedores e alinhamento entre equipe, stakeholders e áreas impactadas.",
       "Já cuidei de KPIs de interfaces SOX (Sarbanes-Oxley / compliance) e de dashboards de acompanhamento.",
       "Rotina em Scrum / Kanban e documentação técnica."
     ]},
-  { tx:30, ty:5, icon:"🛠️", color:"#8e44ad", title:"Tecnologias", key:"tech",
+  { tx:23, ty:4, icon:"🛠️", color:"#8e44ad", title:"Tecnologias", key:"tech",
     lines:[
       "Backend: C#, .NET / .NET Core, ASP.NET Core, Web API (REST).",
       "Dados: Entity Framework Core, LINQ, SQL Server, Modelagem.",
@@ -358,13 +357,13 @@ const stations = [
       "DevOps: Docker, Git, GitHub, CI/CD.",
       "Idiomas: Português (nativo) e Inglês (avançado)."
     ]},
-  { tx:14, ty:25, icon:"🎓", color:"#3aa0ff", title:"Formação", key:"formacao",
+  { tx:11, ty:18, icon:"🎓", color:"#3aa0ff", title:"Formação", key:"formacao",
     lines:[
       "Bacharelado em Sistemas de Informação — IFES (Instituto Federal do Espírito Santo).",
       "Pós-graduação (Especialização) em Desenvolvimento Web.",
       "Sempre estudando e trazendo o aprendizado pro dia a dia do time."
     ]},
-  { tx:30, ty:25, icon:"📫", color:"#16a085", title:"Contato", key:"contato",
+  { tx:23, ty:18, icon:"📫", color:"#16a085", title:"Contato", key:"contato",
     lines:[
       "Quer trocar uma ideia ou ver mais projetos?",
       "E-mail: marcelasfl46@gmail.com",
@@ -376,7 +375,7 @@ const stations = [
 stations.forEach(s=>{ s.x=s.tx*TS; s.y=s.ty*TS; s.visited=false; });
 
 /* ---------------- player ---------------- */
-const player = { x: 6*TS, y: 13*TS, w:10, h:14, dir:0, moving:false, animT:0, frame:0, speed:64 };
+const player = { x: 5*TS, y: 9*TS, w:10, h:14, dir:0, moving:false, animT:0, frame:0, speed:64 };
 const cam = { x:0, y:0 };
 
 /* ---------------- input ---------------- */
@@ -588,7 +587,7 @@ function draw(){
 
   // farm plants
   for(const f of farm) drawFarmPlant(f);
-  { const lx=Math.round(9.5*TS), ly=18*TS-4; ctx.font="6px 'Courier New',monospace"; ctx.textAlign="center";
+  { const lx=Math.round(7.5*TS), ly=14*TS-4; ctx.font="6px 'Courier New',monospace"; ctx.textAlign="center";
     const t="HORTA", w=ctx.measureText(t).width+6;
     ctx.fillStyle="rgba(0,0,0,.5)"; ctx.fillRect(Math.round(lx-w/2),ly-8,w,8);
     ctx.fillStyle="#cdeb9a"; ctx.fillText(t,lx,ly-2); ctx.textAlign="left"; }
