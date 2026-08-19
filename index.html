@@ -151,6 +151,11 @@
             <span class="val" id="styleVal">—</span>
             <button class="arrow pix" data-cyc="style" data-d="1">▶</button></div>
         </div>
+        <div class="row"><label id="lblPet">Pet</label>
+          <div class="opt"><button class="arrow pix" data-cyc="pet" data-d="-1">◀</button>
+            <span class="val" id="petVal">—</span>
+            <button class="arrow pix" data-cyc="pet" data-d="1">▶</button></div>
+        </div>
         <div class="row"><label id="lblPele">Pele</label><div class="swatches" id="swSkin"></div></div>
         <div class="row"><label id="lblCorCabelo">Cor cabelo</label><div class="swatches" id="swHair"></div></div>
         <div class="row"><label id="lblCamisa">Camisa</label><div class="swatches" id="swShirt"></div></div>
@@ -190,6 +195,19 @@ const SHIRTS= ["#3aa0ff","#7bb641","#c0392b","#8e44ad","#16a085","#e67e22","#2c3
 const PANTS = ["#2b4a8a","#3b2f2a","#3f6b3f","#4a3b6b","#222831","#6b4a2b","#7f8c8d"];
 
 const pal = { skin:0, hair:1, shirt:0, pants:0, style:0 };
+let petKind = 0;   // 0 = gato, 1 = cachorro
+
+// dia/noite pelo horário de entrada da pessoa
+const HOUR = (()=>{ try{ return new Date().getHours(); }catch(e){ return 12; } })();
+let dayTint = "", isNight = false;
+function setDayNight(h){
+  if(h>=21 || h<5){ dayTint="rgba(18,26,66,0.46)"; isNight=true; }   // noite
+  else if(h<7){ dayTint="rgba(255,160,90,0.20)"; isNight=false; }    // amanhecer
+  else if(h<17){ dayTint=""; isNight=false; }                        // dia
+  else if(h<19){ dayTint="rgba(255,140,60,0.24)"; isNight=false; }   // pôr do sol
+  else { dayTint="rgba(46,54,120,0.34)"; isNight=true; }             // anoitecer
+}
+setDayNight(HOUR);
 let L = 'pt';
 const I18N = {
   pt:{
@@ -201,6 +219,8 @@ const I18N = {
     bookTitle:"📖 Livro de visitas", bookHint:"Aperte [Espaço] / LER: livro de visitas 📖",
     bookClose:"Fechar", bookEmpty:"Ninguém assinou ainda. Seja o primeiro!", bookYou:"(você)",
     bookIntro:n=>"Quem já passou por aqui:", houseLabel:"VISITAS",
+    lblPet:"Pet", petNames:["Gato","Cachorro"], petHappy:["Ronron! 🐱","Au au! 🐶"],
+    hintPet:"Aperte [Espaço] / LER para fazer carinho 🐾",
     styles:["Curto","Espetado","Longo","Cacheado","Repartido","Coque","Rabo de cavalo","Chanel","Moicano","Franjão","Ondulado"],
     hud:n=>"<b>"+n+"</b><br>Setas / WASD para andar<br>[Espaço] ler · plantar 🌱 · pescar 🎣",
     prog:(p,tot,h,f,r)=>"Placas: <b>"+p+"/"+tot+"</b>"+(p===tot?" ✅":"")+"<br>Colheita: <b>"+h+"</b> 🌻<br>Peixes: <b>"+f+"</b> 🐟"+(r>0?"  ⭐<b>"+r+"</b>":""),
@@ -279,6 +299,8 @@ const I18N = {
     bookTitle:"📖 Guestbook", bookHint:"Press [Space] / READ: guestbook 📖",
     bookClose:"Close", bookEmpty:"No one has signed yet. Be the first!", bookYou:"(you)",
     bookIntro:n=>"Who has been here:", houseLabel:"GUESTS",
+    lblPet:"Pet", petNames:["Cat","Dog"], petHappy:["Purr! 🐱","Woof! 🐶"],
+    hintPet:"Press [Space] / READ to pet it 🐾",
     styles:["Short","Spiky","Long","Curly","Side part","Bun","Ponytail","Bob","Mohawk","Straight bangs","Wavy"],
     hud:n=>"<b>"+n+"</b><br>Arrow keys / WASD to move<br>[Space] read · plant 🌱 · fish 🎣",
     prog:(p,tot,h,f,r)=>"Signs: <b>"+p+"/"+tot+"</b>"+(p===tot?" ✅":"")+"<br>Harvest: <b>"+h+"</b> 🌻<br>Fish: <b>"+f+"</b> 🐟"+(r>0?"  ⭐<b>"+r+"</b>":""),
@@ -545,7 +567,8 @@ stations.forEach(s=>{ s.x=s.tx*TS; s.y=s.ty*TS; s.visited=false; });
 
 /* ---------------- player ---------------- */
 const player = { x: 5*TS, y: 9*TS, w:10, h:14, dir:0, moving:false, animT:0, frame:0, speed:64 };
-const pet = { x: 3*TS, y: 9*TS+4, dir:2, moving:false, animT:0, frame:0 };
+const pet = { x: 3*TS, y: 9*TS+4, dir:2, moving:false, animT:0, frame:0, kind:'cat' };
+let petLove = 0;
 const cam = { x:0, y:0 };
 
 /* ---------------- input ---------------- */
@@ -608,7 +631,8 @@ function interact(){
     openDialogue({icon:s.icon, color:s.color, title:stTitle(s), lines:stLines(s)}); return; }
   const f=nearFarm();
   if(f){ doFarm(f); return; }
-  if(nearWater()) startFishing();
+  if(nearWater()){ startFishing(); return; }
+  if(nearPet()){ petThePet(); return; }
 }
 function nearWater(){
   const cx=player.x+player.w/2, cy=player.y+player.h;
@@ -687,6 +711,8 @@ async function openBook(){
     const you=(!marked && e.n===playerName)?(marked=true,'  '+T().bookYou):''; d.textContent='🌸 '+e.n+you; list.appendChild(d); }); }
 }
 function closeBook(){ bookOpen=false; document.getElementById('book').style.display='none'; }
+function nearPet(){ return Math.hypot((player.x+player.w/2)-(pet.x+6), (player.y+player.h)-(pet.y+8))<26; }
+function petThePet(){ if(petLove>0.4) return; petLove=1.4; showToast(T().petHappy[pet.kind==='dog'?1:0]); }
 
 /* ---------------- collision ---------------- */
 function blocked(nx,ny){
@@ -750,6 +776,7 @@ function update(dt){
   // farm growth + toast timer
   for(const f of farm){ if(f.stage>=0 && f.stage<3) f.stage=Math.min(3, Math.floor((tclock-f.plantedAt)/GROW)); }
   if(toast.t>0) toast.t-=dt;
+  if(petLove>0) petLove-=dt;
 
   // fishing
   if(fishing.active){
@@ -773,6 +800,7 @@ function update(dt){
     const msg = nf.stage<0 ? T().hintPlantar : nf.stage>=3 ? T().hintColher : T().hintCrescendo;
     hintEl.textContent=msg; hintEl.classList.remove('hidden'); }
   else if(nearWater()){ hintEl.textContent=T().hintPescar; hintEl.classList.remove('hidden'); }
+  else if(nearPet()){ hintEl.textContent=T().hintPet; hintEl.classList.remove('hidden'); }
   else { hintEl.classList.add('hidden'); }
 }
 
@@ -819,11 +847,16 @@ function draw(){
   for(const e of ents){
     if(e.kind==='tree') drawTree(e.o);
     else if(e.kind==='house') drawHouse();
-    else if(e.kind==='pet') drawPet(ctx, pet.x, pet.y, pet.dir===3, pet.frame);
+    else if(e.kind==='pet'){ const hop=petLove>0?-Math.abs(Math.sin(petLove*14))*2:0;
+      drawPet(ctx, pet.x, pet.y+hop, pet.dir===3, pet.frame);
+      if(petLove>0) drawHearts(pet.x, pet.y+hop); }
     else drawChar(ctx, player.x-3, player.y-16, player.dir, player.frame, P(), 1);
   }
 
   if(toast.t>0) drawToast();
+
+  // dia/noite (tela inteira, por baixo da UI)
+  if(dayTint){ ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle=dayTint; ctx.fillRect(0,0,cv.width,cv.height); }
 
   // UI overlay pinned to viewport (virtual coords)
   ctx.setTransform(SCALE,0,0,SCALE, OFX, OFY);
@@ -891,12 +924,13 @@ function drawHouse(){
   ctx.fillStyle="#7a4a1e"; ctx.fillRect(x+W/2-6,y+H-16,12,16);
   ctx.fillStyle="#5e3a17"; ctx.fillRect(x+W/2-6,y+H-16,12,2);
   ctx.fillStyle="#e0b84c"; ctx.fillRect(x+W/2+2,y+H-8,1,2);
-  ctx.fillStyle="#8fd0ee"; ctx.fillRect(x+9,y+23,8,8);
-  ctx.fillStyle="#fff"; ctx.fillRect(x+9,y+23,8,1);
+  if(isNight){ ctx.fillStyle="rgba(255,205,95,.45)"; ctx.fillRect(x+6,y+20,14,14); }
+  ctx.fillStyle=isNight?"#ffd766":"#8fd0ee"; ctx.fillRect(x+9,y+23,8,8);
+  ctx.fillStyle=isNight?"#fff0c0":"#fff"; ctx.fillRect(x+9,y+23,8,1);
   ctx.fillStyle="rgba(0,0,0,.35)"; ctx.fillRect(x+12,y+23,1,8); ctx.fillRect(x+9,y+27,8,1);
 }
 
-function drawPet(g, ox, oy, flip, frame){
+function drawCat(g, ox, oy, flip, frame){
   g.fillStyle="rgba(0,0,0,.18)"; g.fillRect(Math.round(ox+2),Math.round(oy+8),9,1);
   if(flip){ g.save(); g.translate(Math.round(ox+13),0); g.scale(-1,1); ox=0; }
   const R=(x,y,w,h,c)=>{ g.fillStyle=c; g.fillRect(Math.round(ox+x),Math.round(oy+y),w,h); };
@@ -910,6 +944,29 @@ function drawPet(g, ox, oy, flip, frame){
   R(8,1,1,1,fur); R(11,1,1,1,fur);
   R(10,3,1,1,eye); R(12,4,1,1,nose); R(11,5,1,1,belly);
   if(flip) g.restore();
+}
+function drawDog(g, ox, oy, flip, frame){
+  g.fillStyle="rgba(0,0,0,.18)"; g.fillRect(Math.round(ox+2),Math.round(oy+8),9,1);
+  if(flip){ g.save(); g.translate(Math.round(ox+13),0); g.scale(-1,1); ox=0; }
+  const R=(x,y,w,h,c)=>{ g.fillStyle=c; g.fillRect(Math.round(ox+x),Math.round(oy+y),w,h); };
+  const fur="#b07a42", furD="#8a5c2e", belly="#e8cfa0", eye="#22303a", nose="#2a1c10";
+  R(0,2,1,1,furD); R(0,3,1,2,fur);
+  R(1,4,2,3,furD);
+  R(2,4,7,3,fur); R(3,6,5,1,belly);
+  const a=frame?1:0, b=frame?0:1;
+  R(2,7,1,2-a,fur); R(4,7+a,1,2-a,fur); R(7,7,1,2-b,fur); R(9,7+b,1,2-b,fur);
+  R(8,2,4,4,fur);
+  R(8,2,1,4,furD); R(11,2,1,4,furD);
+  R(10,3,1,1,eye); R(12,4,1,2,nose); R(11,5,1,1,belly);
+  if(flip) g.restore();
+}
+function drawPet(g, ox, oy, flip, frame){ (pet.kind==='dog'?drawDog:drawCat)(g,ox,oy,flip,frame); }
+function drawHearts(px,py){
+  ctx.font="6px 'Courier New',monospace"; ctx.textAlign="center";
+  const prog=1-Math.max(0,petLove)/1.4;
+  for(let i=0;i<3;i++){ const t=(prog+i*0.2)%1; ctx.globalAlpha=Math.max(0,1-t);
+    ctx.fillStyle="#ff6f91"; ctx.fillText("♥", px+6+(i-1)*4, py-2-t*12); }
+  ctx.globalAlpha=1; ctx.textAlign="left";
 }
 
 function drawFarmPlant(f){
@@ -1024,6 +1081,8 @@ function previewLoop(ts){
   pctx.fillStyle="rgba(0,0,0,.08)"; pctx.fillRect(0,pv.height-20,pv.width,20);
   const s=6;
   drawChar(pctx, Math.round(pv.width/2-8*s), pv.height-32*s-10, 0, pvFrame, P(), s);
+  pctx.save(); pctx.translate(10, pv.height-52); pctx.scale(4,4);
+    (petKind===1?drawDog:drawCat)(pctx, 0, 0, false, pvFrame%2); pctx.restore();
   if(document.getElementById('creator').classList.contains('hidden')) return;
   requestAnimationFrame(previewLoop);
 }
@@ -1044,10 +1103,12 @@ buildSwatches('swShirt',SHIRTS,'shirt');
 buildSwatches('swPants',PANTS,'pants');
 
 function setStyleLabel(){ document.getElementById('styleVal').textContent=T().styles[pal.style]; }
-setStyleLabel();
+function setPetLabel(){ document.getElementById('petVal').textContent=T().petNames[petKind]; }
+setStyleLabel(); setPetLabel();
 document.querySelectorAll('[data-cyc]').forEach(b=>{
   b.onclick=()=>{ const d=parseInt(b.dataset.d,10);
-    pal.style=(pal.style + d + T().styles.length)%T().styles.length; setStyleLabel(); };
+    if(b.dataset.cyc==='pet'){ petKind=(petKind+d+2)%2; setPetLabel(); }
+    else { pal.style=(pal.style + d + T().styles.length)%T().styles.length; setStyleLabel(); } };
 });
 
 function applyLang(){
@@ -1062,8 +1123,9 @@ function applyLang(){
   document.getElementById('lblCalca').textContent=d.lblCalca;
   document.getElementById('start').textContent=d.start;
   document.getElementById('dlgNext').textContent=d.dlgNext;
+  document.getElementById('lblPet').textContent=d.lblPet;
   document.getElementById('nameIn').placeholder=d.namePh;
-  setStyleLabel();
+  setStyleLabel(); setPetLabel();
 }
 document.getElementById('bookClose').onclick=closeBook;
 document.getElementById('book').addEventListener('click',e=>{ if(e.target.id==='book') closeBook(); });
@@ -1077,6 +1139,7 @@ applyLang();
 document.getElementById('start').onclick=()=>{
   const nm=document.getElementById('nameIn').value.trim();
   playerName = nm || T().visitor;
+  pet.kind = petKind===1?'dog':'cat';
   if(nm) pushVisitor(nm);
   document.getElementById('creator').classList.add('hidden');
   document.getElementById('hud').classList.remove('hidden');
