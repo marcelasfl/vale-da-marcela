@@ -530,9 +530,9 @@ function update(dt){
   if(player.moving){ player.animT+=dt*8; player.frame=Math.floor(player.animT)%4; }
   else { player.frame=0; player.animT=0; }
 
-  // camera
-  cam.x = Math.round(player.x+player.w/2 - VW/2);
-  cam.y = Math.round(player.y+player.h/2 - VH/2);
+  // camera (float — a rolagem fina é feita arredondando só no nível de pixel de tela)
+  cam.x = player.x+player.w/2 - VW/2;
+  cam.y = player.y+player.h/2 - VH/2;
   cam.x = Math.max(0, Math.min(WORLD_W-VW, cam.x));
   cam.y = Math.max(0, Math.min(WORLD_H-VH, cam.y));
 
@@ -578,7 +578,7 @@ function draw(){
   ctx.setTransform(1,0,0,1,0,0);
   ctx.fillStyle="#20301c"; ctx.fillRect(0,0,cv.width,cv.height);
   // world transform
-  ctx.setTransform(SCALE,0,0,SCALE, OFX-cam.x*SCALE, OFY-cam.y*SCALE);
+  ctx.setTransform(SCALE,0,0,SCALE, Math.round(OFX-cam.x*SCALE), Math.round(OFY-cam.y*SCALE));
 
   // tiles (only visible range)
   const x0=Math.max(0,Math.floor(cam.x/TS)-1), x1=Math.min(MAP_W,Math.ceil((cam.x+VW)/TS)+1);
