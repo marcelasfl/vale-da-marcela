@@ -486,8 +486,8 @@ const house = { tx:15, ty:12, w:3, h:3 };
 house.px = house.tx*TS; house.py = house.ty*TS;
 let bookOpen=false;
 // Livro de visitas compartilhado (Supabase) — preencher depois de criar o projeto grátis:
-const SB_URL = "";   // ex.: https://xxxxxxxx.supabase.co
-const SB_KEY = "";   // anon public key
+const SB_URL = "https://rqwjcidhvxkryfgtsaoj.supabase.co";
+const SB_KEY = "sb_publishable_yPn-4ZfCW-49KCvaO51uOQ_utuOZ5R_";
 const SB_ON = !!(SB_URL && SB_KEY);
 function getVisitors(){ try{ return JSON.parse(localStorage.getItem('vale_visitantes')||'[]'); }catch(e){ return []; } }
 function addVisitor(name){ try{ const arr=getVisitors(); arr.push({n:name,t:Date.now()}); while(arr.length>80) arr.shift();
