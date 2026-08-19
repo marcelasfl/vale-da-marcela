@@ -609,25 +609,28 @@ function draw(){
 
   // UI overlay pinned to viewport (virtual coords)
   ctx.setTransform(SCALE,0,0,SCALE, OFX, OFY);
-  drawVignette();
   if(fishing.active) drawFishing();
 }
 
 function drawTile(x,y,t){
   const px=x*TS, py=y*TS;
-  let base = ((x+y)&1)? "#6fae4a" : "#67a545";
-  if(t===1){ base = ((x+y)&1)? "#caa46a":"#c19a5e"; }        // path
+  let base = "#69a746";                                       // grass (uniform → rolagem lisa)
+  if(t===1){ base = "#c19a5e"; }                              // path
   else if(t===2){ base = "#3f8fd0"; }                         // water
-  else if(t===3){ base = ((x+y)&1)? "#6fae4a":"#67a545"; }    // flowerbed grass under
+  else if(t===3){ base = "#69a746"; }                         // flowerbed grass under
   else if(t===5){ base = ((x+y)&1)? "#7a5230":"#6e4a2a"; }    // tilled soil
   ctx.fillStyle=base; ctx.fillRect(px,py,TS,TS);
   if(t===5){ ctx.fillStyle="rgba(0,0,0,.18)"; ctx.fillRect(px,py+4,TS,1); ctx.fillRect(px,py+11,TS,1);
     ctx.fillStyle="rgba(255,255,255,.05)"; ctx.fillRect(px,py+5,TS,1); ctx.fillRect(px,py+12,TS,1); }
-  // grass texture dots
+  // grass texture — posições por hash do tile (sem grid marchando ao rolar)
   if(t===0||t===3){
+    const s=((x*73856093)^(y*19349663))>>>0;
+    ctx.fillStyle="rgba(35,80,28,.28)";
+    ctx.fillRect(px+((s>>2)%13), py+2+((s>>6)%11), 1, 2);
     ctx.fillStyle="rgba(255,255,255,.05)";
-    ctx.fillRect(px+3,py+5,1,1); ctx.fillRect(px+10,py+11,1,1);
-    ctx.fillStyle="rgba(0,0,0,.05)"; ctx.fillRect(px+7,py+8,1,1);
+    ctx.fillRect(px+((s>>9)%14), py+((s>>4)%14), 1, 1);
+    ctx.fillStyle="rgba(0,0,0,.05)";
+    ctx.fillRect(px+((s>>12)%14), py+((s>>16)%14), 1, 1);
   }
   if(t===1){ ctx.fillStyle="rgba(0,0,0,.06)"; ctx.fillRect(px+2,py+2,1,1); ctx.fillRect(px+9,py+11,1,1); }
   if(t===2){ // water shimmer
@@ -710,12 +713,6 @@ function drawSign(s){
   ctx.fillStyle="rgba(0,0,0,.55)"; ctx.fillRect(x+8-w/2, y-11, w, 8);
   ctx.fillStyle="#fff"; ctx.fillText(label, x+8, y-5);
   ctx.textAlign="left";
-}
-
-function drawVignette(){
-  const g=ctx.createRadialGradient(VW/2,VH/2,VH*0.35, VW/2,VH/2,VH*0.85);
-  g.addColorStop(0,"rgba(0,0,0,0)"); g.addColorStop(1,"rgba(0,0,0,0.28)");
-  ctx.fillStyle=g; ctx.fillRect(0,0,VW,VH);
 }
 
 function drawFishing(){
