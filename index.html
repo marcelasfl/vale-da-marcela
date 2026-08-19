@@ -580,9 +580,11 @@ function draw(){
   // world transform
   ctx.setTransform(SCALE,0,0,SCALE, Math.round(OFX-cam.x*SCALE), Math.round(OFY-cam.y*SCALE));
 
-  // tiles (only visible range)
-  const x0=Math.max(0,Math.floor(cam.x/TS)-1), x1=Math.min(MAP_W,Math.ceil((cam.x+VW)/TS)+1);
-  const y0=Math.max(0,Math.floor(cam.y/TS)-1), y1=Math.min(MAP_H,Math.ceil((cam.y+VH)/TS)+1);
+  // tiles — culling pela área REALMENTE visível na tela (inclui a moldura/letterbox),
+  // senão as colunas somem na borda ao andar de lado ("carrega coluna por coluna")
+  const vL=cam.x-OFX/SCALE, vT=cam.y-OFY/SCALE, vR=cam.x+(cv.width-OFX)/SCALE, vB=cam.y+(cv.height-OFY)/SCALE;
+  const x0=Math.max(0,Math.floor(vL/TS)-1), x1=Math.min(MAP_W,Math.ceil(vR/TS)+1);
+  const y0=Math.max(0,Math.floor(vT/TS)-1), y1=Math.min(MAP_H,Math.ceil(vB/TS)+1);
   for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){ drawTile(x,y,map[y][x]); }
 
   // farm plants
