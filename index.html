@@ -85,6 +85,20 @@
   #dlg .body{font-size:15px;line-height:1.55;color:#3a2a12;min-height:66px;white-space:pre-wrap}
   #dlg .next{text-align:right;font-size:12px;color:#8a6a34;margin-top:6px}
   @media (max-width:480px){ .panel h1{font-size:21px} #dlg .body{font-size:14px} }
+
+  /* ---------- guestbook ---------- */
+  #book{position:fixed;inset:0;z-index:16;display:none;align-items:center;justify-content:center;
+    background:rgba(16,20,30,.6);padding:16px}
+  .bookpanel{width:min(420px,94vw);max-height:88vh;display:flex;flex-direction:column;background:var(--paper);
+    border:6px solid var(--wood-d);border-radius:14px;box-shadow:0 0 0 6px var(--wood) inset,0 16px 40px rgba(0,0,0,.5);
+    padding:16px 18px;text-align:center}
+  .bookpanel h2{margin:.1em 0;font-size:20px;color:var(--wood-d)}
+  .booksub{margin:.2em 0 10px;font-size:13px;color:#6b4a22}
+  #bookList{flex:1 1 auto;overflow:auto;text-align:left;border:2px solid var(--paper-d);border-radius:8px;
+    padding:8px 10px;background:#fffdf5;min-height:120px}
+  .bookrow{font-size:14px;color:var(--ink);padding:4px 2px;border-bottom:1px dashed var(--paper-d)}
+  .bookempty{color:#8a6a34;font-size:13px;text-align:center;padding:26px 8px}
+  #bookClose{margin-top:14px;background:var(--wood);color:#fff;padding:10px 20px;font-size:15px}
 </style>
 </head>
 <body>
@@ -109,6 +123,15 @@
   <div class="next" id="dlgNext">▼ espaço / clique para continuar</div>
 </div>
 
+<div id="book">
+  <div class="bookpanel">
+    <h2 id="bookTitle">📖 Livro de visitas</h2>
+    <p class="booksub" id="bookIntro"></p>
+    <div id="bookList"></div>
+    <button id="bookClose" class="pix">Fechar</button>
+  </div>
+</div>
+
 <div id="creator">
   <div class="panel">
     <div class="langbar">
@@ -121,7 +144,7 @@
       <canvas id="preview" width="200" height="220"></canvas>
       <div class="controls">
         <div class="row"><label id="lblNome">Nome</label>
-          <input id="nameIn" class="namebox" maxlength="24" value="Marcela Starling">
+          <input id="nameIn" class="namebox" maxlength="24" placeholder="Seu nome">
         </div>
         <div class="row"><label id="lblCabelo">Cabelo</label>
           <div class="opt"><button class="arrow pix" data-cyc="style" data-d="-1">◀</button>
@@ -174,6 +197,10 @@ const I18N = {
     creatorSub:"Monte seu personagem e explore. Cada placa conta um pedaço da minha jornada.",
     lblNome:"Nome", lblCabelo:"Cabelo", lblPele:"Pele", lblCorCabelo:"Cor cabelo", lblCamisa:"Camisa", lblCalca:"Calça",
     start:"▶ Começar aventura",
+    namePh:"Seu nome", visitor:"Visitante",
+    bookTitle:"📖 Livro de visitas", bookHint:"Aperte [Espaço] / LER: livro de visitas 📖",
+    bookClose:"Fechar", bookEmpty:"Ninguém assinou ainda. Seja o primeiro!", bookYou:"(você)",
+    bookIntro:n=>"Quem já passou por aqui:", houseLabel:"VISITAS",
     styles:["Curto","Espetado","Longo","Cacheado","Repartido","Coque","Rabo de cavalo","Chanel","Moicano","Franjão","Ondulado"],
     hud:n=>"<b>"+n+"</b><br>Setas / WASD para andar<br>[Espaço] ler · plantar 🌱 · pescar 🎣",
     prog:(p,tot,h,f,r)=>"Placas: <b>"+p+"/"+tot+"</b>"+(p===tot?" ✅":"")+"<br>Colheita: <b>"+h+"</b> 🌻<br>Peixes: <b>"+f+"</b> 🐟"+(r>0?"  ⭐<b>"+r+"</b>":""),
@@ -248,6 +275,10 @@ const I18N = {
     creatorSub:"Build your character and explore. Each sign tells a piece of my journey.",
     lblNome:"Name", lblCabelo:"Hair", lblPele:"Skin", lblCorCabelo:"Hair color", lblCamisa:"Shirt", lblCalca:"Pants",
     start:"▶ Start adventure",
+    namePh:"Your name", visitor:"Visitor",
+    bookTitle:"📖 Guestbook", bookHint:"Press [Space] / READ: guestbook 📖",
+    bookClose:"Close", bookEmpty:"No one has signed yet. Be the first!", bookYou:"(you)",
+    bookIntro:n=>"Who has been here:", houseLabel:"GUESTS",
     styles:["Short","Spiky","Long","Curly","Side part","Bun","Ponytail","Bob","Mohawk","Straight bangs","Wavy"],
     hud:n=>"<b>"+n+"</b><br>Arrow keys / WASD to move<br>[Space] read · plant 🌱 · fish 🎣",
     prog:(p,tot,h,f,r)=>"Signs: <b>"+p+"/"+tot+"</b>"+(p===tot?" ✅":"")+"<br>Harvest: <b>"+h+"</b> 🌻<br>Fish: <b>"+f+"</b> 🐟"+(r>0?"  ⭐<b>"+r+"</b>":""),
@@ -446,9 +477,17 @@ const map = [];
 // decorations: trees & props (non-blocking visuals + some collision)
 const trees=[];
 (function(){
-  const spots=[[2,7],[8,7],[14,8],[20,8],[27,6],[3,13],[20,14],[16,20],[29,12]];
+  const spots=[[2,7],[8,7],[14,8],[27,6],[3,13],[20,15],[29,12]];
   spots.forEach(([tx,ty])=> trees.push({x:tx*TS+8,y:ty*TS+8}));
 })();
+
+/* ---------------- house / guestbook ---------------- */
+const house = { tx:15, ty:12, w:3, h:3 };
+house.px = house.tx*TS; house.py = house.ty*TS;
+let bookOpen=false;
+function getVisitors(){ try{ return JSON.parse(localStorage.getItem('vale_visitantes')||'[]'); }catch(e){ return []; } }
+function addVisitor(name){ try{ const arr=getVisitors(); arr.push({n:name,t:Date.now()}); while(arr.length>80) arr.shift();
+  localStorage.setItem('vale_visitantes', JSON.stringify(arr)); }catch(e){} }
 
 /* ---------------- farm plot ---------------- */
 const farm=[];
@@ -469,7 +508,8 @@ const FISH_RARE=["Pirarucu","Tucunaré gigante","Dourado lendário","Piraíba"];
 const fishing={active:false,phase:'',pos:0,dir:1,speed:1,zoneStart:0.4,zoneW:0.2,result:'',resultT:0,caught:'',rare:false};
 
 /* ---------------- stations (portfolio data) ---------------- */
-let playerName = "Marcela Starling";
+let playerName = "Visitante";
+const OWNER = "Marcela Starling";
 const stations = [
   { tx:5,  ty:4,  icon:"🌱", color:"#7bb641", key:"sobre" },
   { tx:11, ty:4,  icon:"👩‍💻", color:"#e67e22", key:"exp" },
@@ -494,6 +534,7 @@ addEventListener('keydown',e=>{
   const k=KMAP[e.key];
   if(k){ keys[k]=true; e.preventDefault(); }
   if(e.key===' '||e.key==='Enter'||e.key==='e'||e.key==='E'){ interact(); e.preventDefault(); }
+  if(e.key==='Escape' && bookOpen){ closeBook(); e.preventDefault(); }
 });
 addEventListener('keyup',e=>{ const k=KMAP[e.key]; if(k){ keys[k]=false; e.preventDefault(); } });
 
@@ -519,7 +560,7 @@ function openDialogue(st){
   setLine();
 }
 function setLine(){
-  dlg.full = dlg.station.lines[dlg.idx].replace(/\{NAME\}/g, playerName);
+  dlg.full = dlg.station.lines[dlg.idx].replace(/\{NAME\}/g, OWNER);
   dlg.shown=0;
   document.getElementById('dlgBody').textContent="";
 }
@@ -533,8 +574,10 @@ function advance(){
 }
 function closeDialogue(){ dlg.open=false; dlgEl.style.display='none'; }
 function interact(){
+  if(bookOpen){ closeBook(); return; }
   if(fishing.active){ fishingPress(); return; }
   if(dlg.open){ advance(); return; }
+  if(nearHouse()){ openBook(); return; }
   const s=nearStation();
   if(s){ if(!s.visited){ s.visited=true; updateProgress(); }
     openDialogue({icon:s.icon, color:s.color, title:stTitle(s), lines:stLines(s)}); return; }
@@ -598,6 +641,24 @@ function doFarm(f){
   else if(f.stage>=3){ f.stage=-1; harvestCount++; showToast(T().tColheita); updateProgress(); }
   else { showToast(T().tCrescendo); }
 }
+function nearHouse(){
+  const fx=player.x+player.w/2, fy=player.y+player.h;
+  const doorX=house.px+house.w*TS/2, doorY=house.py+house.h*TS;
+  return Math.abs(fx-doorX)<18 && fy>doorY-4 && fy<doorY+22;
+}
+function openBook(){
+  bookOpen=true;
+  document.getElementById('bookTitle').textContent=T().bookTitle;
+  document.getElementById('bookIntro').textContent=T().bookIntro();
+  document.getElementById('bookClose').textContent=T().bookClose;
+  const list=document.getElementById('bookList'); list.innerHTML='';
+  const v=getVisitors();
+  if(!v.length){ const d=document.createElement('div'); d.className='bookempty'; d.textContent=T().bookEmpty; list.appendChild(d); }
+  else { v.slice().reverse().forEach((e,i)=>{ const d=document.createElement('div'); d.className='bookrow';
+    d.textContent='🌸 '+e.n+((i===0&&e.n===playerName)?'  '+T().bookYou:''); list.appendChild(d); }); }
+  document.getElementById('book').style.display='flex';
+}
+function closeBook(){ bookOpen=false; document.getElementById('book').style.display='none'; }
 
 /* ---------------- collision ---------------- */
 function blocked(nx,ny){
@@ -613,6 +674,8 @@ function blocked(nx,ny){
   for(const t of trees){
     if(Math.abs((nx+player.w/2)-t.x)<7 && Math.abs((ny+player.h)-(t.y+8))<5) return true;
   }
+  // house body
+  if(nx < house.px+house.w*TS && nx+player.w > house.px && ny < house.py+house.h*TS && ny+player.h > house.py) return true;
   return false;
 }
 
@@ -621,7 +684,7 @@ let last=0, started=false;
 function update(dt){
   let vx=0,vy=0;
   if(keys.up)vy-=1; if(keys.down)vy+=1; if(keys.left)vx-=1; if(keys.right)vx+=1;
-  const locked = dlg.open||fishing.active;
+  const locked = dlg.open||fishing.active||bookOpen;
   player.moving = (vx||vy)&&!locked;
   if(locked){ vx=0; vy=0; player.moving=false; }
   if(vx||vy){
@@ -668,7 +731,8 @@ function update(dt){
   const hintEl=document.getElementById('hint');
   const near=nearStation();
   const nf=near?null:nearFarm();
-  if(dlg.open||fishing.active){ hintEl.classList.add('hidden'); }
+  if(dlg.open||fishing.active||bookOpen){ hintEl.classList.add('hidden'); }
+  else if(nearHouse()){ hintEl.textContent=T().bookHint; hintEl.classList.remove('hidden'); }
   else if(near){ hintEl.textContent=T().hintSign(stTitle(near)); hintEl.classList.remove('hidden'); }
   else if(nf){
     const msg = nf.stage<0 ? T().hintPlantar : nf.stage>=3 ? T().hintColher : T().hintCrescendo;
@@ -702,6 +766,10 @@ function draw(){
     const t=T().lago, w=ctx.measureText(t).width+6;
     ctx.fillStyle="rgba(0,0,0,.5)"; ctx.fillRect(Math.round(lx-w/2),ly-8,w,8);
     ctx.fillStyle="#bfe4ff"; ctx.fillText(t,lx,ly-2); ctx.textAlign="left"; }
+  { const lx=house.px+house.w*TS/2, ly=house.py-2; ctx.font="6px 'Courier New',monospace"; ctx.textAlign="center";
+    const t=T().houseLabel, w=ctx.measureText(t).width+6;
+    ctx.fillStyle="rgba(0,0,0,.5)"; ctx.fillRect(Math.round(lx-w/2),ly-8,w,8);
+    ctx.fillStyle="#ffd9a8"; ctx.fillText(t,lx,ly-2); ctx.textAlign="left"; }
 
   // stations
   for(const s of stations) drawSign(s);
@@ -709,10 +777,12 @@ function draw(){
   // depth-sorted: trees & player by baseline y
   const ents=[];
   for(const t of trees) ents.push({y:t.y+8, kind:'tree', o:t});
+  ents.push({y:house.py+house.h*TS, kind:'house'});
   ents.push({y:player.y+player.h, kind:'player'});
   ents.sort((a,b)=>a.y-b.y);
   for(const e of ents){
     if(e.kind==='tree') drawTree(e.o);
+    else if(e.kind==='house') drawHouse();
     else drawChar(ctx, player.x-3, player.y-16, player.dir, player.frame, P(), 1);
   }
 
@@ -769,6 +839,24 @@ function drawTree(t){
   ctx.beginPath(); ctx.arc(x+5+sway,y-2,6,0,7); ctx.fill();
   ctx.fillStyle="rgba(255,255,255,.10)";
   ctx.beginPath(); ctx.arc(x-2+sway,y-9,3,0,7); ctx.fill();
+}
+
+function drawHouse(){
+  const x=house.px, y=house.py, W=house.w*TS, H=house.h*TS;
+  ctx.fillStyle="rgba(0,0,0,.18)"; ctx.beginPath(); ctx.ellipse(x+W/2,y+H-1,W/2-3,4,0,0,7); ctx.fill();
+  ctx.fillStyle="#e2caa0"; ctx.fillRect(x+5,y+17,W-10,H-17);
+  ctx.fillStyle="#cdb078"; ctx.fillRect(x+5,y+17,W-10,2);
+  ctx.fillStyle="rgba(0,0,0,.06)"; ctx.fillRect(x+5,y+H-3,W-10,3);
+  ctx.fillStyle="#b5482f";
+  ctx.beginPath(); ctx.moveTo(x+1,y+19); ctx.lineTo(x+W/2,y+2); ctx.lineTo(x+W-1,y+19); ctx.closePath(); ctx.fill();
+  ctx.fillStyle="#9c3c26"; ctx.fillRect(x+1,y+18,W-2,2);
+  ctx.fillStyle="rgba(255,255,255,.10)"; ctx.beginPath(); ctx.moveTo(x+W/2,y+5); ctx.lineTo(x+W/2-6,y+16); ctx.lineTo(x+W/2,y+16); ctx.closePath(); ctx.fill();
+  ctx.fillStyle="#7a4a1e"; ctx.fillRect(x+W/2-6,y+H-16,12,16);
+  ctx.fillStyle="#5e3a17"; ctx.fillRect(x+W/2-6,y+H-16,12,2);
+  ctx.fillStyle="#e0b84c"; ctx.fillRect(x+W/2+2,y+H-8,1,2);
+  ctx.fillStyle="#8fd0ee"; ctx.fillRect(x+9,y+23,8,8);
+  ctx.fillStyle="#fff"; ctx.fillRect(x+9,y+23,8,1);
+  ctx.fillStyle="rgba(0,0,0,.35)"; ctx.fillRect(x+12,y+23,1,8); ctx.fillRect(x+9,y+27,8,1);
 }
 
 function drawFarmPlant(f){
@@ -921,8 +1009,11 @@ function applyLang(){
   document.getElementById('lblCalca').textContent=d.lblCalca;
   document.getElementById('start').textContent=d.start;
   document.getElementById('dlgNext').textContent=d.dlgNext;
+  document.getElementById('nameIn').placeholder=d.namePh;
   setStyleLabel();
 }
+document.getElementById('bookClose').onclick=closeBook;
+document.getElementById('book').addEventListener('click',e=>{ if(e.target.id==='book') closeBook(); });
 document.querySelectorAll('.langbtn').forEach(b=>{
   b.onclick=()=>{ L=b.dataset.lang;
     document.querySelectorAll('.langbtn').forEach(x=>x.classList.toggle('sel', x===b));
@@ -932,7 +1023,8 @@ applyLang();
 
 document.getElementById('start').onclick=()=>{
   const nm=document.getElementById('nameIn').value.trim();
-  if(nm) playerName=nm;
+  playerName = nm || T().visitor;
+  if(nm) addVisitor(nm);
   document.getElementById('creator').classList.add('hidden');
   document.getElementById('hud').classList.remove('hidden');
   document.getElementById('progress').classList.remove('hidden');
