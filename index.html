@@ -530,13 +530,16 @@ const cam = { x:0, y:0 };
 const keys={};
 const KMAP={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',
   w:'up',s:'down',a:'left',d:'right',W:'up',S:'down',A:'left',D:'right'};
+function typingInField(e){ const t=e.target||{}, tag=(t.tagName||'').toLowerCase();
+  return tag==='input'||tag==='textarea'||t.isContentEditable; }
 addEventListener('keydown',e=>{
+  if(typingInField(e)) return;
   const k=KMAP[e.key];
   if(k){ keys[k]=true; e.preventDefault(); }
   if(e.key===' '||e.key==='Enter'||e.key==='e'||e.key==='E'){ interact(); e.preventDefault(); }
   if(e.key==='Escape' && bookOpen){ closeBook(); e.preventDefault(); }
 });
-addEventListener('keyup',e=>{ const k=KMAP[e.key]; if(k){ keys[k]=false; e.preventDefault(); } });
+addEventListener('keyup',e=>{ if(typingInField(e)) return; const k=KMAP[e.key]; if(k){ keys[k]=false; e.preventDefault(); } });
 
 document.querySelectorAll('#dpad .b').forEach(b=>{
   const k=b.dataset.k;
