@@ -27,6 +27,10 @@
   .panel h1{margin:.1em 0 .1em;font-size:26px;letter-spacing:1px;color:var(--wood-d);
     text-shadow:1px 1px 0 var(--paper-d);}
   .panel p.sub{margin:.2em 0 14px;font-size:14px;color:#6b4a22;}
+  .langbar{display:flex;justify-content:flex-end;gap:6px;margin-bottom:2px}
+  .langbtn{font-family:inherit;font-size:12px;font-weight:bold;cursor:pointer;padding:4px 9px;
+    border-radius:6px;border:2px solid var(--wood);background:var(--paper-d);color:var(--wood-d)}
+  .langbtn.sel{background:var(--green);color:#123;border-color:#4d7a1f}
   .stage{display:flex;gap:18px;flex-wrap:wrap;justify-content:center;align-items:flex-start}
   #preview{image-rendering:pixelated;background:linear-gradient(#bfe08a,#8fc25a);
     border:4px solid var(--wood-d);border-radius:10px;width:200px;height:220px;flex:0 0 auto}
@@ -107,23 +111,27 @@
 
 <div id="creator">
   <div class="panel">
-    <h1>Meu Portfólio — Vale da Carreira</h1>
-    <p class="sub">Monte seu personagem e explore. Cada placa conta um pedaço da minha jornada.</p>
+    <div class="langbar">
+      <button class="langbtn sel" data-lang="pt">🇧🇷 PT</button>
+      <button class="langbtn" data-lang="en">🇺🇸 EN</button>
+    </div>
+    <h1 id="crTitle">Meu Portfólio — Vale da Carreira</h1>
+    <p class="sub" id="crSub">Monte seu personagem e explore. Cada placa conta um pedaço da minha jornada.</p>
     <div class="stage">
       <canvas id="preview" width="200" height="220"></canvas>
       <div class="controls">
-        <div class="row"><label>Nome</label>
+        <div class="row"><label id="lblNome">Nome</label>
           <input id="nameIn" class="namebox" maxlength="24" value="Marcela Starling">
         </div>
-        <div class="row"><label>Cabelo</label>
+        <div class="row"><label id="lblCabelo">Cabelo</label>
           <div class="opt"><button class="arrow pix" data-cyc="style" data-d="-1">◀</button>
             <span class="val" id="styleVal">—</span>
             <button class="arrow pix" data-cyc="style" data-d="1">▶</button></div>
         </div>
-        <div class="row"><label>Pele</label><div class="swatches" id="swSkin"></div></div>
-        <div class="row"><label>Cor cabelo</label><div class="swatches" id="swHair"></div></div>
-        <div class="row"><label>Camisa</label><div class="swatches" id="swShirt"></div></div>
-        <div class="row"><label>Calça</label><div class="swatches" id="swPants"></div></div>
+        <div class="row"><label id="lblPele">Pele</label><div class="swatches" id="swSkin"></div></div>
+        <div class="row"><label id="lblCorCabelo">Cor cabelo</label><div class="swatches" id="swHair"></div></div>
+        <div class="row"><label id="lblCamisa">Camisa</label><div class="swatches" id="swShirt"></div></div>
+        <div class="row"><label id="lblCalca">Calça</label><div class="swatches" id="swPants"></div></div>
       </div>
     </div>
     <button id="start" class="pix">▶ Começar aventura</button>
@@ -159,8 +167,158 @@ const SHIRTS= ["#3aa0ff","#7bb641","#c0392b","#8e44ad","#16a085","#e67e22","#2c3
 const PANTS = ["#2b4a8a","#3b2f2a","#3f6b3f","#4a3b6b","#222831","#6b4a2b","#7f8c8d"];
 
 const pal = { skin:0, hair:1, shirt:0, pants:0, style:0 };
-const STYLE_NAMES = ["Curto","Espetado","Longo","Cacheado","Repartido","Coque",
-  "Rabo de cavalo","Chanel","Moicano","Franjão","Ondulado"];
+let L = 'pt';
+const I18N = {
+  pt:{
+    creatorTitle:"Meu Portfólio — Vale da Carreira",
+    creatorSub:"Monte seu personagem e explore. Cada placa conta um pedaço da minha jornada.",
+    lblNome:"Nome", lblCabelo:"Cabelo", lblPele:"Pele", lblCorCabelo:"Cor cabelo", lblCamisa:"Camisa", lblCalca:"Calça",
+    start:"▶ Começar aventura",
+    styles:["Curto","Espetado","Longo","Cacheado","Repartido","Coque","Rabo de cavalo","Chanel","Moicano","Franjão","Ondulado"],
+    hud:n=>"<b>"+n+"</b><br>Setas / WASD para andar<br>[Espaço] ler · plantar 🌱 · pescar 🎣",
+    prog:(p,tot,h,f,r)=>"Placas: <b>"+p+"/"+tot+"</b>"+(p===tot?" ✅":"")+"<br>Colheita: <b>"+h+"</b> 🌻<br>Peixes: <b>"+f+"</b> 🐟"+(r>0?"  ⭐<b>"+r+"</b>":""),
+    hintSign:t=>"Aperte [Espaço] / LER: "+t,
+    hintPlantar:"Aperte [Espaço] / LER para plantar 🌱",
+    hintColher:"Aperte [Espaço] / LER para colher 🌻",
+    hintCrescendo:"Crescendo… volte daqui a pouco 🌱",
+    hintPescar:"Aperte [Espaço] / LER para pescar 🎣",
+    tPlantado:"Plantado! 🌱", tColheita:"Colheita! +1 🌻", tCrescendo:"Ainda crescendo…",
+    horta:"HORTA", lago:"LAGO",
+    fishTitle:"PESCARIA", fishTitleRare:"PESCARIA · PEIXE RARO!",
+    fishAim:rare=>"Aperte [Espaço] / LER na faixa "+(rare?"dourada":"verde")+"!",
+    fishCatch:f=>"Fisgou: "+f+"  (aperte p/ sair)",
+    fishMiss:"O peixe escapou...  (aperte p/ sair)",
+    dlgNext:"▼ espaço / clique para continuar",
+    curioTitle:"Você fisgou!", curioTitleRare:"Peixe raro!",
+    curioFisgou:(rare,f)=>(rare?"RARÍSSIMO! ":"")+"Fisgou: "+f+"!  🐟",
+    curioLine:fact=>"Curiosidade: "+fact,
+    curios:[
+      "Adoro dançar — qualquer estilo musical serve! 💃",
+      "Meu jogo favorito é Red Dead Redemption! :)",
+      "Fiz 6 anos de inglês, mas aprendi de verdade foi jogando. 🎮",
+      "Tenho 2 irmãs mais velhas — e nossos empregos não têm nada a ver entre si.",
+      "Minha cor favorita é roxo. 💜",
+      "Já participei de um campeonato de easter eggs de Red Dead Redemption 2… e ganhei, kk. 🏆",
+      "Já joguei campeonatos estaduais de vôlei. 🏐",
+      "Sou viciada em doces! Meu favorito é doce de arroz. 🍬",
+      "Minha série favorita é Breaking Bad.",
+      "Gosto de jogos de gerenciar estabelecimentos — nem no descanso eu paro de gerenciar, kk."
+    ],
+    finishTitle:"Fim de tour",
+    finishLines:["Você conheceu todo o vale! Valeu por explorar meu portfólio.","Pode continuar plantando e colhendo à vontade. 🌻"],
+    st:{
+      sobre:{title:"Sobre mim", lines:[
+        "Oi! Eu sou {NAME} 👋",
+        "Desenvolvedora Full Stack (.NET / C# e Vue), de Vitória–ES.",
+        "3 anos com .NET/C# e Vue, e cerca de 6 anos de experiência em tecnologia.",
+        "Comecei em Dados e Análise de Sistemas — o que me deu forte visão de negócio, requisitos e dados.",
+        "Bem-vindo(a) ao meu vale! Ande pelas trilhas e visite as placas pra conhecer minha jornada."]},
+      exp:{title:"Experiência", lines:[
+        "LEDS (2023–atual) — Desenvolvedora Full Stack & Líder de Squad.",
+        "Lidero o squad na reestruturação do sistema de bolsas da FAPES.",
+        "Criei o Portal do Coordenador e do Bolsista: solicitação, cancelamento, remanejamento e visualização de bolsas e projetos.",
+        "Sistema em produção com +500 usuários, com previsão de atender todos os bolsistas do ES. 🚀",
+        "Nexa Tecnologia (2022–2023) — Analista de Dados.",
+        "Oak Tecnologia (2020–2022) — Analista de Sistemas."]},
+      lideranca:{title:"Liderança", lines:[
+        "Conduzo as decisões técnicas do squad e faço code reviews.",
+        "Mentoria de desenvolvedores e alinhamento entre equipe, stakeholders e áreas impactadas.",
+        "Já cuidei de KPIs de interfaces SOX (Sarbanes-Oxley / compliance) e de dashboards de acompanhamento.",
+        "Rotina em Scrum / Kanban e documentação técnica."]},
+      tech:{title:"Tecnologias", lines:[
+        "Backend: C#, .NET / .NET Core, ASP.NET Core, Web API (REST).",
+        "Dados: Entity Framework Core, LINQ, SQL Server, Modelagem.",
+        "Frontend: Vue.js, JavaScript (ES6+), TypeScript, HTML5, CSS3.",
+        "DevOps: Docker, Git, GitHub, CI/CD.",
+        "Idiomas: Português (nativo) e Inglês (avançado)."]},
+      formacao:{title:"Formação", lines:[
+        "Bacharelado em Sistemas de Informação — IFES (Instituto Federal do Espírito Santo).",
+        "Pós-graduação (Especialização) em Desenvolvimento Web.",
+        "Sempre estudando e trazendo o aprendizado pro dia a dia do time."]},
+      contato:{title:"Contato", lines:[
+        "Quer trocar uma ideia ou ver mais projetos?",
+        "E-mail: marcelasfl46@gmail.com",
+        "LinkedIn: linkedin.com/in/marcela-starling-11a2bb226",
+        "GitHub: github.com/marcelasfl",
+        "Obrigada por visitar meu vale! 🌾"]}
+    }
+  },
+  en:{
+    creatorTitle:"My Portfolio — Career Valley",
+    creatorSub:"Build your character and explore. Each sign tells a piece of my journey.",
+    lblNome:"Name", lblCabelo:"Hair", lblPele:"Skin", lblCorCabelo:"Hair color", lblCamisa:"Shirt", lblCalca:"Pants",
+    start:"▶ Start adventure",
+    styles:["Short","Spiky","Long","Curly","Side part","Bun","Ponytail","Bob","Mohawk","Straight bangs","Wavy"],
+    hud:n=>"<b>"+n+"</b><br>Arrow keys / WASD to move<br>[Space] read · plant 🌱 · fish 🎣",
+    prog:(p,tot,h,f,r)=>"Signs: <b>"+p+"/"+tot+"</b>"+(p===tot?" ✅":"")+"<br>Harvest: <b>"+h+"</b> 🌻<br>Fish: <b>"+f+"</b> 🐟"+(r>0?"  ⭐<b>"+r+"</b>":""),
+    hintSign:t=>"Press [Space] / READ: "+t,
+    hintPlantar:"Press [Space] / READ to plant 🌱",
+    hintColher:"Press [Space] / READ to harvest 🌻",
+    hintCrescendo:"Growing… come back soon 🌱",
+    hintPescar:"Press [Space] / READ to fish 🎣",
+    tPlantado:"Planted! 🌱", tColheita:"Harvest! +1 🌻", tCrescendo:"Still growing…",
+    horta:"GARDEN", lago:"LAKE",
+    fishTitle:"FISHING", fishTitleRare:"FISHING · RARE FISH!",
+    fishAim:rare=>"Press [Space] / READ on the "+(rare?"gold":"green")+" zone!",
+    fishCatch:f=>"Caught: "+f+"  (press to exit)",
+    fishMiss:"The fish got away...  (press to exit)",
+    dlgNext:"▼ space / click to continue",
+    curioTitle:"You caught it!", curioTitleRare:"Rare fish!",
+    curioFisgou:(rare,f)=>(rare?"SUPER RARE! ":"")+"Caught: "+f+"!  🐟",
+    curioLine:fact=>"Fun fact: "+fact,
+    curios:[
+      "I love dancing — any music style works! 💃",
+      "My favorite game is Red Dead Redemption! :)",
+      "I studied English for 6 years, but really learned it playing games. 🎮",
+      "I have 2 older sisters — and our jobs have nothing in common.",
+      "My favorite color is purple. 💜",
+      "I once joined a Red Dead Redemption 2 easter-egg contest… and won, lol. 🏆",
+      "I've played state-level volleyball championships. 🏐",
+      "I'm addicted to sweets! My favorite is rice pudding. 🍬",
+      "My favorite show is Breaking Bad.",
+      "I love management/tycoon games — I don't even stop managing when I'm resting, lol."
+    ],
+    finishTitle:"Tour complete",
+    finishLines:["You've seen the whole valley! Thanks for exploring my portfolio.","Feel free to keep planting and harvesting. 🌻"],
+    st:{
+      sobre:{title:"About me", lines:[
+        "Hi! I'm {NAME} 👋",
+        "Full Stack Developer (.NET / C# and Vue), from Vitória, Brazil.",
+        "3 years with .NET/C# and Vue, and around 6 years in tech.",
+        "I started in Data and Systems Analysis — which gave me strong business, requirements and data insight.",
+        "Welcome to my valley! Walk the trails and visit the signs to get to know my journey."]},
+      exp:{title:"Experience", lines:[
+        "LEDS (2023–now) — Full Stack Developer & Squad Lead.",
+        "I lead the squad revamping FAPES' scholarship system.",
+        "I built the Coordinator and Grantee Portal: request, cancellation, reassignment and overview of scholarships and projects.",
+        "Live system with 500+ users, set to serve every grant holder in the state. 🚀",
+        "Nexa Tecnologia (2022–2023) — Data Analyst.",
+        "Oak Tecnologia (2020–2022) — Systems Analyst."]},
+      lideranca:{title:"Leadership", lines:[
+        "I drive the squad's technical decisions and do code reviews.",
+        "Mentoring developers and aligning the team, stakeholders and impacted areas.",
+        "I've handled SOX (Sarbanes-Oxley / compliance) interface KPIs and tracking dashboards.",
+        "Day-to-day in Scrum / Kanban and technical documentation."]},
+      tech:{title:"Tech stack", lines:[
+        "Backend: C#, .NET / .NET Core, ASP.NET Core, Web API (REST).",
+        "Data: Entity Framework Core, LINQ, SQL Server, Modeling.",
+        "Frontend: Vue.js, JavaScript (ES6+), TypeScript, HTML5, CSS3.",
+        "DevOps: Docker, Git, GitHub, CI/CD.",
+        "Languages: Portuguese (native) and English (advanced)."]},
+      formacao:{title:"Education", lines:[
+        "Bachelor's in Information Systems — IFES (Federal Institute of Espírito Santo).",
+        "Postgraduate (Specialization) in Web Development.",
+        "Always studying and bringing what I learn to the team's daily work."]},
+      contato:{title:"Contact", lines:[
+        "Want to chat or see more projects?",
+        "Email: marcelasfl46@gmail.com",
+        "LinkedIn: linkedin.com/in/marcela-starling-11a2bb226",
+        "GitHub: github.com/marcelasfl",
+        "Thanks for visiting my valley! 🌾"]}
+    }
+  }
+};
+const T = ()=>I18N[L];
 
 function P(){
   const skin = SKINS[pal.skin];
@@ -308,70 +466,20 @@ function showToast(t){ toast.text=t; toast.t=1.8; }
 let fishCount=0, rareCount=0;
 const FISH=["Lambari","Tilápia","Traíra","Robalo","Dourado","Bagre","Cascudo","Piranha!"];
 const FISH_RARE=["Pirarucu","Tucunaré gigante","Dourado lendário","Piraíba"];
-const CURIOS=[
-  "Adoro dançar — qualquer estilo musical serve! 💃",
-  "Meu jogo favorito é Red Dead Redemption! :)",
-  "Fiz 6 anos de inglês, mas aprendi de verdade foi jogando. 🎮",
-  "Tenho 2 irmãs mais velhas — e nossos empregos não têm nada a ver entre si.",
-  "Minha cor favorita é roxo. 💜",
-  "Já participei de um campeonato de easter eggs de Red Dead Redemption 2… e ganhei, kk. 🏆",
-  "Já joguei campeonatos estaduais de vôlei. 🏐",
-  "Sou viciada em doces! Meu favorito é doce de arroz. 🍬",
-  "Minha série favorita é Breaking Bad.",
-  "Gosto de jogos de gerenciar estabelecimentos — nem no descanso eu paro de gerenciar, kk."
-];
 const fishing={active:false,phase:'',pos:0,dir:1,speed:1,zoneStart:0.4,zoneW:0.2,result:'',resultT:0,caught:'',rare:false};
 
 /* ---------------- stations (portfolio data) ---------------- */
 let playerName = "Marcela Starling";
 const stations = [
-  { tx:5, ty:4, icon:"🌱", color:"#7bb641", title:"Sobre mim", key:"sobre",
-    lines:[
-      "Oi! Eu sou {NAME} 👋",
-      "Desenvolvedora Full Stack (.NET / C# e Vue), de Vitória–ES.",
-      "3 anos com .NET/C# e Vue, e cerca de 6 anos de experiência em tecnologia.",
-      "Comecei em Dados e Análise de Sistemas — o que me deu forte visão de negócio, requisitos e dados.",
-      "Bem-vindo(a) ao meu vale! Ande pelas trilhas e visite as placas pra conhecer minha jornada."
-    ]},
-  { tx:11, ty:4, icon:"👩‍💻", color:"#e67e22", title:"Experiência", key:"exp",
-    lines:[
-      "LEDS (2023–atual) — Desenvolvedora Full Stack & Líder de Squad.",
-      "Lidero o squad na reestruturação do sistema de bolsas da FAPES.",
-      "Criei o Portal do Coordenador e do Bolsista: solicitação, cancelamento, remanejamento e visualização de bolsas e projetos.",
-      "Sistema em produção com +500 usuários, com previsão de atender todos os bolsistas do ES. 🚀",
-      "Nexa Tecnologia (2022–2023) — Analista de Dados.",
-      "Oak Tecnologia (2020–2022) — Analista de Sistemas."
-    ]},
-  { tx:17, ty:4, icon:"🧭", color:"#c0392b", title:"Liderança", key:"lideranca",
-    lines:[
-      "Conduzo as decisões técnicas do squad e faço code reviews.",
-      "Mentoria de desenvolvedores e alinhamento entre equipe, stakeholders e áreas impactadas.",
-      "Já cuidei de KPIs de interfaces SOX (Sarbanes-Oxley / compliance) e de dashboards de acompanhamento.",
-      "Rotina em Scrum / Kanban e documentação técnica."
-    ]},
-  { tx:23, ty:4, icon:"🛠️", color:"#8e44ad", title:"Tecnologias", key:"tech",
-    lines:[
-      "Backend: C#, .NET / .NET Core, ASP.NET Core, Web API (REST).",
-      "Dados: Entity Framework Core, LINQ, SQL Server, Modelagem.",
-      "Frontend: Vue.js, JavaScript (ES6+), TypeScript, HTML5, CSS3.",
-      "DevOps: Docker, Git, GitHub, CI/CD.",
-      "Idiomas: Português (nativo) e Inglês (avançado)."
-    ]},
-  { tx:11, ty:18, icon:"🎓", color:"#3aa0ff", title:"Formação", key:"formacao",
-    lines:[
-      "Bacharelado em Sistemas de Informação — IFES (Instituto Federal do Espírito Santo).",
-      "Pós-graduação (Especialização) em Desenvolvimento Web.",
-      "Sempre estudando e trazendo o aprendizado pro dia a dia do time."
-    ]},
-  { tx:23, ty:18, icon:"📫", color:"#16a085", title:"Contato", key:"contato",
-    lines:[
-      "Quer trocar uma ideia ou ver mais projetos?",
-      "E-mail: marcelasfl46@gmail.com",
-      "LinkedIn: linkedin.com/in/marcela-starling-11a2bb226",
-      "GitHub: github.com/marcelasfl",
-      "Obrigada por visitar meu vale! 🌾"
-    ]}
+  { tx:5,  ty:4,  icon:"🌱", color:"#7bb641", key:"sobre" },
+  { tx:11, ty:4,  icon:"👩‍💻", color:"#e67e22", key:"exp" },
+  { tx:17, ty:4,  icon:"🧭", color:"#c0392b", key:"lideranca" },
+  { tx:23, ty:4,  icon:"🛠️", color:"#8e44ad", key:"tech" },
+  { tx:11, ty:18, icon:"🎓", color:"#3aa0ff", key:"formacao" },
+  { tx:23, ty:18, icon:"📫", color:"#16a085", key:"contato" }
 ];
+const stTitle = s => T().st[s.key].title;
+const stLines = s => T().st[s.key].lines;
 stations.forEach(s=>{ s.x=s.tx*TS; s.y=s.ty*TS; s.visited=false; });
 
 /* ---------------- player ---------------- */
@@ -409,7 +517,6 @@ function openDialogue(st){
   dlgEl.style.borderColor=shade(st.color,-40);
   dlgEl.style.display='block';
   setLine();
-  if(!st.visited){ st.visited=true; updateProgress(); }
 }
 function setLine(){
   dlg.full = dlg.station.lines[dlg.idx].replace(/\{NAME\}/g, playerName);
@@ -428,8 +535,9 @@ function closeDialogue(){ dlg.open=false; dlgEl.style.display='none'; }
 function interact(){
   if(fishing.active){ fishingPress(); return; }
   if(dlg.open){ advance(); return; }
-  const st=nearStation();
-  if(st){ openDialogue(st); return; }
+  const s=nearStation();
+  if(s){ if(!s.visited){ s.visited=true; updateProgress(); }
+    openDialogue({icon:s.icon, color:s.color, title:stTitle(s), lines:stLines(s)}); return; }
   const f=nearFarm();
   if(f){ doFarm(f); return; }
   if(nearWater()) startFishing();
@@ -467,11 +575,10 @@ function endFishing(){
   if(wasCatch) openCuriosidade(fish, rare);
 }
 function openCuriosidade(fish, rare){
-  const fact=CURIOS[Math.floor(Math.random()*CURIOS.length)];
-  openDialogue({ icon: rare?"🌟":"🎣", title: rare?"Peixe raro!":"Você fisgou!",
-    color: rare?"#f1c40f":"#16a085", visited:true,
-    lines:[ (rare?"RARÍSSIMO! ":"")+"Fisgou: "+fish+"!  🐟",
-            "Curiosidade: "+fact ] });
+  const c=T().curios; const fact=c[Math.floor(Math.random()*c.length)];
+  openDialogue({ icon: rare?"🌟":"🎣", title: rare?T().curioTitleRare:T().curioTitle,
+    color: rare?"#f1c40f":"#16a085",
+    lines:[ T().curioFisgou(rare,fish), T().curioLine(fact) ] });
 }
 function nearStation(){
   for(const s of stations){
@@ -487,9 +594,9 @@ function nearFarm(){
   return best;
 }
 function doFarm(f){
-  if(f.stage<0){ f.stage=0; f.plantedAt=tclock; showToast("Plantado! 🌱"); }
-  else if(f.stage>=3){ f.stage=-1; harvestCount++; showToast("Colheita! +1 🌻"); updateProgress(); }
-  else { showToast("Ainda crescendo…"); }
+  if(f.stage<0){ f.stage=0; f.plantedAt=tclock; showToast(T().tPlantado); }
+  else if(f.stage>=3){ f.stage=-1; harvestCount++; showToast(T().tColheita); updateProgress(); }
+  else { showToast(T().tCrescendo); }
 }
 
 /* ---------------- collision ---------------- */
@@ -562,13 +669,11 @@ function update(dt){
   const near=nearStation();
   const nf=near?null:nearFarm();
   if(dlg.open||fishing.active){ hintEl.classList.add('hidden'); }
-  else if(near){ hintEl.textContent="Aperte [Espaço] / LER: "+near.title; hintEl.classList.remove('hidden'); }
+  else if(near){ hintEl.textContent=T().hintSign(stTitle(near)); hintEl.classList.remove('hidden'); }
   else if(nf){
-    const msg = nf.stage<0 ? "Aperte [Espaço] / LER para plantar 🌱"
-              : nf.stage>=3 ? "Aperte [Espaço] / LER para colher 🌻"
-              : "Crescendo… volte daqui a pouco 🌱";
+    const msg = nf.stage<0 ? T().hintPlantar : nf.stage>=3 ? T().hintColher : T().hintCrescendo;
     hintEl.textContent=msg; hintEl.classList.remove('hidden'); }
-  else if(nearWater()){ hintEl.textContent="Aperte [Espaço] / LER para pescar 🎣"; hintEl.classList.remove('hidden'); }
+  else if(nearWater()){ hintEl.textContent=T().hintPescar; hintEl.classList.remove('hidden'); }
   else { hintEl.classList.add('hidden'); }
 }
 
@@ -590,11 +695,11 @@ function draw(){
   // farm plants
   for(const f of farm) drawFarmPlant(f);
   { const lx=Math.round(7.5*TS), ly=14*TS-4; ctx.font="6px 'Courier New',monospace"; ctx.textAlign="center";
-    const t="HORTA", w=ctx.measureText(t).width+6;
+    const t=T().horta, w=ctx.measureText(t).width+6;
     ctx.fillStyle="rgba(0,0,0,.5)"; ctx.fillRect(Math.round(lx-w/2),ly-8,w,8);
     ctx.fillStyle="#cdeb9a"; ctx.fillText(t,lx,ly-2); ctx.textAlign="left"; }
   { const lx=28*TS, ly=14*TS-4; ctx.font="6px 'Courier New',monospace"; ctx.textAlign="center";
-    const t="LAGO", w=ctx.measureText(t).width+6;
+    const t=T().lago, w=ctx.measureText(t).width+6;
     ctx.fillStyle="rgba(0,0,0,.5)"; ctx.fillRect(Math.round(lx-w/2),ly-8,w,8);
     ctx.fillStyle="#bfe4ff"; ctx.fillText(t,lx,ly-2); ctx.textAlign="left"; }
 
@@ -713,7 +818,7 @@ function drawSign(s){
   // small "book/pin" mark
   ctx.fillRect(x+4,y+2,6,1); ctx.fillRect(x+4,y+4,6,1); ctx.fillRect(x+4,y+6,4,1);
   // floating label
-  const label=s.title.toUpperCase();
+  const label=stTitle(s).toUpperCase();
   ctx.font="6px 'Courier New',monospace"; ctx.textAlign="center";
   const w=ctx.measureText(label).width+6;
   ctx.fillStyle="rgba(0,0,0,.55)"; ctx.fillRect(x+8-w/2, y-11, w, 8);
@@ -728,7 +833,7 @@ function drawFishing(){
   ctx.strokeStyle="rgba(255,255,255,.18)"; ctx.lineWidth=1; ctx.strokeRect(x+0.5,y+0.5,W-1,H-1);
   ctx.font="9px 'Courier New',monospace"; ctx.textAlign="center";
   ctx.fillStyle=fishing.rare?"#ffd166":"#bfe0ff";
-  ctx.fillText(fishing.rare?"PESCARIA · PEIXE RARO!":"PESCARIA", x+W/2, y+14);
+  ctx.fillText(fishing.rare?T().fishTitleRare:T().fishTitle, x+W/2, y+14);
   const bx=x+18, bw=W-36, by=y+24, bh=12;
   ctx.fillStyle="#0e2033"; ctx.fillRect(bx,by,bw,bh);
   ctx.fillStyle=fishing.rare?"#ffcf4d":"#7bd66a"; ctx.fillRect(Math.round(bx+fishing.zoneStart*bw), by, Math.round(fishing.zoneW*bw), bh);
@@ -737,9 +842,9 @@ function drawFishing(){
   ctx.fillStyle="#ffd166"; ctx.fillRect(cxp-1, by-3, 3, bh+6);
   ctx.font="7px 'Courier New',monospace";
   let msg,col;
-  if(fishing.phase==='aim'){ msg="Aperte [Espaço] / LER na faixa "+(fishing.rare?"dourada":"verde")+"!"; col="#ffe9b0"; }
-  else if(fishing.result==='catch'){ msg="Fisgou: "+fishing.caught+"  (aperte p/ sair)"; col="#8ff0a0"; }
-  else { msg="O peixe escapou...  (aperte p/ sair)"; col="#ff9b9b"; }
+  if(fishing.phase==='aim'){ msg=T().fishAim(fishing.rare); col="#ffe9b0"; }
+  else if(fishing.result==='catch'){ msg=T().fishCatch(fishing.caught); col="#8ff0a0"; }
+  else { msg=T().fishMiss; col="#ff9b9b"; }
   ctx.fillStyle=col; ctx.fillText(msg, x+W/2, y+H-7);
   ctx.textAlign="left";
 }
@@ -747,16 +852,11 @@ function drawFishing(){
 /* ---------------- HUD ---------------- */
 function updateProgress(){
   const done=stations.filter(s=>s.visited).length;
-  document.getElementById('progress').innerHTML=
-    "Placas: <b>"+done+"/"+stations.length+"</b>"+(done===stations.length?" ✅":"")+
-    "<br>Colheita: <b>"+harvestCount+"</b> 🌻"+
-    "<br>Peixes: <b>"+fishCount+"</b> 🐟"+(rareCount>0?"  ⭐<b>"+rareCount+"</b>":"");
+  document.getElementById('progress').innerHTML=T().prog(done, stations.length, harvestCount, fishCount, rareCount);
   if(done===stations.length && !finishShown){
     finishShown=true;
     setTimeout(()=>{ if(!dlg.open){
-      openDialogue({icon:"🌟",title:"Fim de tour",color:"#f1c40f",visited:true,
-        lines:["Você conheceu todo o vale! Valeu por explorar meu portfólio.",
-               "Pode continuar plantando e colhendo à vontade. 🌻"]});
+      openDialogue({icon:"🌟",title:T().finishTitle,color:"#f1c40f",lines:T().finishLines});
     }}, 400);
   }
 }
@@ -802,12 +902,33 @@ buildSwatches('swHair',HAIRS,'hair');
 buildSwatches('swShirt',SHIRTS,'shirt');
 buildSwatches('swPants',PANTS,'pants');
 
-function setStyleLabel(){ document.getElementById('styleVal').textContent=STYLE_NAMES[pal.style]; }
+function setStyleLabel(){ document.getElementById('styleVal').textContent=T().styles[pal.style]; }
 setStyleLabel();
 document.querySelectorAll('[data-cyc]').forEach(b=>{
   b.onclick=()=>{ const d=parseInt(b.dataset.d,10);
-    pal.style=(pal.style + d + STYLE_NAMES.length)%STYLE_NAMES.length; setStyleLabel(); };
+    pal.style=(pal.style + d + T().styles.length)%T().styles.length; setStyleLabel(); };
 });
+
+function applyLang(){
+  const d=T();
+  document.getElementById('crTitle').textContent=d.creatorTitle;
+  document.getElementById('crSub').textContent=d.creatorSub;
+  document.getElementById('lblNome').textContent=d.lblNome;
+  document.getElementById('lblCabelo').textContent=d.lblCabelo;
+  document.getElementById('lblPele').textContent=d.lblPele;
+  document.getElementById('lblCorCabelo').textContent=d.lblCorCabelo;
+  document.getElementById('lblCamisa').textContent=d.lblCamisa;
+  document.getElementById('lblCalca').textContent=d.lblCalca;
+  document.getElementById('start').textContent=d.start;
+  document.getElementById('dlgNext').textContent=d.dlgNext;
+  setStyleLabel();
+}
+document.querySelectorAll('.langbtn').forEach(b=>{
+  b.onclick=()=>{ L=b.dataset.lang;
+    document.querySelectorAll('.langbtn').forEach(x=>x.classList.toggle('sel', x===b));
+    applyLang(); };
+});
+applyLang();
 
 document.getElementById('start').onclick=()=>{
   const nm=document.getElementById('nameIn').value.trim();
@@ -815,8 +936,7 @@ document.getElementById('start').onclick=()=>{
   document.getElementById('creator').classList.add('hidden');
   document.getElementById('hud').classList.remove('hidden');
   document.getElementById('progress').classList.remove('hidden');
-  document.getElementById('hud').innerHTML=
-    "<b>"+playerName+"</b><br>Setas / WASD para andar<br>[Espaço] ler · plantar 🌱 · pescar 🎣";
+  document.getElementById('hud').innerHTML=T().hud(playerName);
   updateProgress();
   started=true; last=0;
 };
