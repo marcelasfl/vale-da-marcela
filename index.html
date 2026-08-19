@@ -57,8 +57,10 @@
   #hud{position:fixed;left:10px;top:10px;z-index:8;pointer-events:none;
     font-size:12px;color:#fff;text-shadow:1px 1px 0 #000;line-height:1.5}
   #hud b{color:#ffe27a}
-  #progress{position:fixed;right:10px;top:10px;z-index:8;color:#fff;text-shadow:1px 1px 0 #000;
+  #progress{position:fixed;right:10px;top:52px;z-index:8;color:#fff;text-shadow:1px 1px 0 #000;
     font-size:12px;text-align:right}
+  #mute{position:fixed;top:10px;right:10px;z-index:11;width:34px;height:34px;border-radius:8px;
+    border:2px solid rgba(255,255,255,.3);background:rgba(0,0,0,.5);color:#fff;font-size:16px;cursor:pointer}
   #hint{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:8;
     background:rgba(0,0,0,.55);color:#fff;padding:6px 12px;border-radius:8px;font-size:13px;
     border:2px solid rgba(255,255,255,.25);white-space:nowrap}
@@ -107,6 +109,7 @@
 <div id="hud" class="hidden"></div>
 <div id="progress" class="hidden"></div>
 <div id="hint" class="hidden"></div>
+<button id="mute" class="hidden">🔊</button>
 
 <div id="touch">
   <div id="dpad">
@@ -1120,6 +1123,47 @@ function frame(ts){
 }
 requestAnimationFrame(frame);
 
+/* ---------------- música (Web Audio, procedural) ---------------- */
+let actx=null, master=null, musicTimer=null;
+let musicOn = (()=>{ try{ return localStorage.getItem('vale_mute')!=='1'; }catch(e){ return true; } })();
+const NT={C4:261.63,D4:293.66,E4:329.63,F4:349.23,G4:392,A4:440,C5:523.25,D5:587.33,E5:659.25,G5:783.99,A5:880,
+  C3:130.81,F3:174.61,G3:196,A3:220};
+const MEL=[["C5",1],["E5",1],["G5",2],["A5",1],["G5",1],["E5",2],["D5",1],["E5",1],["G5",1],["E5",1],["D5",2],
+  ["C5",1],["A4",1],["G4",2],["C5",1],["D5",1],["E5",2],["D5",1],["C5",1],["C5",2]];
+const BASS=[["C3",2],["C3",2],["A3",2],["A3",2],["G3",2],["G3",2],["F3",2],["F3",2],["C3",2],["C3",2],["G3",2],["G3",2],["C3",2]];
+const BEAT=0.38;
+function noteAt(freq,start,dur,type,vol){
+  const o=actx.createOscillator(), g=actx.createGain();
+  o.type=type; o.frequency.value=freq; o.connect(g); g.connect(master);
+  const atk=0.02, rel=Math.min(0.14,dur*0.5);
+  g.gain.setValueAtTime(0.0001,start); g.gain.linearRampToValueAtTime(vol,start+atk);
+  g.gain.setValueAtTime(vol,Math.max(start+atk,start+dur-rel)); g.gain.linearRampToValueAtTime(0.0001,start+dur);
+  o.start(start); o.stop(start+dur+0.03);
+}
+function scheduleLoop(){
+  if(!actx) return;
+  let t=actx.currentTime+0.06;
+  for(const [n,b] of MEL){ noteAt(NT[n],t,b*BEAT*0.96,'triangle',0.16); t+=b*BEAT; }
+  let tb=actx.currentTime+0.06;
+  for(const [n,b] of BASS){ noteAt(NT[n],tb,b*BEAT*0.96,'sine',0.10); tb+=b*BEAT; }
+  const loopLen=MEL.reduce((s,x)=>s+x[1],0)*BEAT;
+  musicTimer=setTimeout(scheduleLoop, loopLen*1000-40);
+}
+function startMusic(){
+  try{
+    if(!actx){ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+      actx=new AC(); master=actx.createGain(); master.connect(actx.destination); scheduleLoop(); }
+    if(actx.state==='suspended') actx.resume();
+    master.gain.value = musicOn?0.5:0;
+  }catch(e){}
+}
+function toggleMute(){
+  musicOn=!musicOn;
+  try{ localStorage.setItem('vale_mute', musicOn?'0':'1'); }catch(e){}
+  const b=document.getElementById('mute'); if(b) b.textContent = musicOn?'🔊':'🔇';
+  startMusic();
+}
+
 /* ---------------- creator UI ---------------- */
 const pv=document.getElementById('preview'), pctx=pv.getContext('2d');
 pctx.imageSmoothingEnabled=false;
@@ -1181,6 +1225,7 @@ function applyLang(){
 }
 document.getElementById('bookClose').onclick=closeBook;
 document.getElementById('book').addEventListener('click',e=>{ if(e.target.id==='book') closeBook(); });
+document.getElementById('mute').onclick=toggleMute;
 document.querySelectorAll('.langbtn').forEach(b=>{
   b.onclick=()=>{ L=b.dataset.lang;
     document.querySelectorAll('.langbtn').forEach(x=>x.classList.toggle('sel', x===b));
@@ -1197,6 +1242,9 @@ document.getElementById('start').onclick=()=>{
   document.getElementById('hud').classList.remove('hidden');
   document.getElementById('progress').classList.remove('hidden');
   document.getElementById('hud').innerHTML=T().hud(playerName);
+  document.getElementById('mute').classList.remove('hidden');
+  document.getElementById('mute').textContent = musicOn?'🔊':'🔇';
+  startMusic();
   updateProgress();
   started=true; last=0;
 };
