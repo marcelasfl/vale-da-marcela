@@ -591,6 +591,10 @@ function draw(){
     const t="HORTA", w=ctx.measureText(t).width+6;
     ctx.fillStyle="rgba(0,0,0,.5)"; ctx.fillRect(Math.round(lx-w/2),ly-8,w,8);
     ctx.fillStyle="#cdeb9a"; ctx.fillText(t,lx,ly-2); ctx.textAlign="left"; }
+  { const lx=28*TS, ly=14*TS-4; ctx.font="6px 'Courier New',monospace"; ctx.textAlign="center";
+    const t="LAGO", w=ctx.measureText(t).width+6;
+    ctx.fillStyle="rgba(0,0,0,.5)"; ctx.fillRect(Math.round(lx-w/2),ly-8,w,8);
+    ctx.fillStyle="#bfe4ff"; ctx.fillText(t,lx,ly-2); ctx.textAlign="left"; }
 
   // stations
   for(const s of stations) drawSign(s);
