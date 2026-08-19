@@ -1125,7 +1125,7 @@ requestAnimationFrame(frame);
 
 /* ---------------- música (Web Audio, procedural) ---------------- */
 let actx=null, master=null, musicTimer=null;
-let musicOn = (()=>{ try{ return localStorage.getItem('vale_mute')!=='1'; }catch(e){ return true; } })();
+let musicOn = (()=>{ try{ return localStorage.getItem('vale_music')==='1'; }catch(e){ return false; } })();
 const NT={C4:261.63,D4:293.66,E4:329.63,F4:349.23,G4:392,A4:440,C5:523.25,D5:587.33,E5:659.25,G5:783.99,A5:880,
   C3:130.81,F3:174.61,G3:196,A3:220};
 const MEL=[["C5",1],["E5",1],["G5",2],["A5",1],["G5",1],["E5",2],["D5",1],["E5",1],["G5",1],["E5",1],["D5",2],
@@ -1159,7 +1159,7 @@ function startMusic(){
 }
 function toggleMute(){
   musicOn=!musicOn;
-  try{ localStorage.setItem('vale_mute', musicOn?'0':'1'); }catch(e){}
+  try{ localStorage.setItem('vale_music', musicOn?'1':'0'); }catch(e){}
   const b=document.getElementById('mute'); if(b) b.textContent = musicOn?'🔊':'🔇';
   startMusic();
 }
@@ -1244,7 +1244,7 @@ document.getElementById('start').onclick=()=>{
   document.getElementById('hud').innerHTML=T().hud(playerName);
   document.getElementById('mute').classList.remove('hidden');
   document.getElementById('mute').textContent = musicOn?'🔊':'🔇';
-  startMusic();
+  if(musicOn) startMusic();
   updateProgress();
   started=true; last=0;
 };
